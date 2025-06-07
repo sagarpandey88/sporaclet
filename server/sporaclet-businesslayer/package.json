@@ -1,0 +1,19 @@
+{
+  "name": "sporaclet-businesslayer",
+  "version": "1.0.0",
+  "description": "Business logic layer for Predicto",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "sporaclet-azure-dblayer": "file:../sporaclet-azure-dblayer"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.0",
+    "rimraf": "^5.0.0",
+    "@types/node": "^20.x"
+  }
+}

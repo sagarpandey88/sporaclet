@@ -1,0 +1,21 @@
+{
+  "name": "sporaclet-azure-dblayer",
+  "version": "1.0.0",
+  "description": "Azure Table Storage data access layer for Predicto",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/data-tables": "^13.3.1",
+    "@types/node": "^22.15.30",
+    "dotenv": "^16.5.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3"
+  }
+}
