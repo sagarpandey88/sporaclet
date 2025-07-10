@@ -1,0 +1,36 @@
+{
+  "name": "sports-prediction-platform",
+  "version": "1.0.0",
+  "description": "Full-stack sports prediction platform with React frontend and Node.js backend",
+  "private": true,
+  "workspaces": ["client", "server"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "start:client": "cd client && npm run start",
+    "start:server": "cd server && npm run start",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "clean": "rm -rf client/node_modules server/node_modules client/.next server/dist",
+    "lint": "cd client && npm run lint",
+    "test": "cd server && npm run test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "sports",
+    "predictions",
+    "react",
+    "nextjs",
+    "nodejs",
+    "express",
+    "postgresql"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
