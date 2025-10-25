@@ -46,7 +46,10 @@ export default function RootLayout({
         >
           <div className="min-h-screen bg-background flex flex-col">
             <Navigation />
-            <main className="flex-1">{children}</main>
+            {/* <main className="flex-1">{children}</main> */}
+                     <main className="flex-1 flex items-center justify-center">
+             <div className="w-full max-w-5xl px-4">{children}</div>
+           </main>
             <Footer />
           </div>
           <Toaster />
