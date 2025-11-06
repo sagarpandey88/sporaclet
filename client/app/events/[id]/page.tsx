@@ -1,11 +1,14 @@
 import { notFound } from 'next/navigation';
 import { EventHeader } from '@/components/features/event-detail/EventHeader';
 import { PredictionDetail } from '@/components/features/prediction-display/PredictionDetail';
+import { AccuracyAnalysis } from '@/components/features/prediction-display/AccuracyAnalysis';
 import { HeadToHeadSection } from '@/components/features/head-to-head/HeadToHeadSection';
 import { TeamRoster } from '@/components/features/team-roster/TeamRoster';
 import { InjuryReport } from '@/components/features/injury-report/InjuryReport';
 import { FieldVisualization } from '@/components/features/field-visualization/FieldVisualization';
 import { CourtVisualization } from '@/components/features/field-visualization/CourtVisualization';
+import { EventStatus } from '@/types/events';
+import { Header } from '@/components/features/header/Header';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -21,6 +24,7 @@ async function getEventDetail(id: string) {
       next: { revalidate: 900 }, // Revalidate every 15 minutes
     });
 
+
     if (!res.ok) {
       if (res.status === 404) {
         return null;
@@ -29,7 +33,7 @@ async function getEventDetail(id: string) {
     }
 
     const data = await res.json();
-    return data.data;
+    return data;
   } catch (error) {
     console.error('Error fetching event detail:', error);
     throw error;
@@ -37,7 +41,8 @@ async function getEventDetail(id: string) {
 }
 
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
-  const event = await getEventDetail(params.id);
+  const resolvedParams = await params;
+  const event = await getEventDetail(resolvedParams.id);
 
   if (!event) {
     notFound();
@@ -46,6 +51,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const hasTeams = event.homeTeam && event.awayTeam;
   const isFootball = event.sport?.name === 'football';
   const isBasketball = event.sport?.name === 'basketball';
+  const isCompleted = event.status === EventStatus.completed;
 
   // Extract data from snapshots
   const homeSnapshot = event.homeTeamSnapshot;
@@ -53,6 +59,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Event Header */}
         <EventHeader
@@ -70,28 +77,43 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
         {/* Prediction Section */}
         {event.prediction && hasTeams && (
-          <PredictionDetail
-            prediction={{
-              probabilities: event.prediction.probabilities || {
-                home: 0,
-                away: 0,
-                draw: 0,
-              },
-              predictedWinner: event.prediction.predictedWinner,
-              confidence: event.prediction.confidence,
-              keyFactors: event.prediction.keyFactors || [],
-              modelVersion: event.prediction.modelVersion,
-              generatedAt: event.prediction.createdAt,
-            }}
-            homeTeam={{
-              name: event.homeTeam.name,
-              shortName: event.homeTeam.shortName,
-            }}
-            awayTeam={{
-              name: event.awayTeam.name,
-              shortName: event.awayTeam.shortName,
-            }}
-          />
+          <>
+            {/* Show Accuracy Analysis for completed events */}
+            {isCompleted && event.winner && (
+              <AccuracyAnalysis
+                prediction={event.prediction}
+                actualWinner={event.winner}
+                homeTeamName={event.homeTeam.shortName}
+                awayTeamName={event.awayTeam.shortName}
+              />
+            )}
+
+            {/* Show Prediction Detail for upcoming events */}
+            {!isCompleted && (
+              <PredictionDetail
+                prediction={{
+                  probabilities: event.prediction.probabilities || {
+                    home: 0,
+                    away: 0,
+                    draw: 0,
+                  },
+                  predictedWinner: event.prediction.predictedWinner,
+                  confidence: event.prediction.confidence,
+                  keyFactors: event.prediction.keyFactors || [],
+                  modelVersion: event.prediction.modelVersion,
+                  generatedAt: event.prediction.createdAt,
+                }}
+                homeTeam={{
+                  name: event.homeTeam.name,
+                  shortName: event.homeTeam.shortName,
+                }}
+                awayTeam={{
+                  name: event.awayTeam.name,
+                  shortName: event.awayTeam.shortName,
+                }}
+              />
+            )}
+          </>
         )}
 
         {/* Team Sports Layout */}
@@ -218,7 +240,8 @@ export async function generateStaticParams() {
 
 // Metadata
 export async function generateMetadata({ params }: EventDetailPageProps) {
-  const event = await getEventDetail(params.id);
+  const resolvedParams = await params;
+  const event = await getEventDetail(resolvedParams.id);
 
   if (!event) {
     return {

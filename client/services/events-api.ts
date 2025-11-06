@@ -2,8 +2,12 @@ import { EventSummary, EventDetail, PaginatedResponse, ApiError } from '@/types/
 
 /**
  * API configuration
+ * Normalize NEXT_PUBLIC_API_URL so callers can provide either:
+ *  - `http://localhost:3001`  (we'll append `/api`)
+ *  - `http://localhost:3001/api` (we'll avoid duplicating `/api`)
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const rawApiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = rawApiBase.replace(/\/+$/, '') + '/api';
 
 /**
  * Custom error class for API errors

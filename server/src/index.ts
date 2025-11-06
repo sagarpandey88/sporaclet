@@ -1,11 +1,15 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
 import { logger, morganMiddleware, requestIdMiddleware } from './middleware/logger';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { apiLimiter } from './middleware/rate-limiter';
+import { performanceMonitor, setupMemoryMonitoring } from './middleware/performance';
+import { swaggerSpec } from './config/swagger';
 import healthRoutes from './routes/health.routes';
 import eventsRoutes from './routes/events.routes';
+import searchRoutes from './routes/search.routes';
 
 // Load environment variables
 dotenv.config();
@@ -28,12 +32,28 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestIdMiddleware);
 app.use(morganMiddleware);
 
+// Performance monitoring
+app.use(performanceMonitor);
+
 // Rate limiting
 app.use('/api', apiLimiter);
+
+// API Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'Sporaclet API Documentation',
+  customCss: '.swagger-ui .topbar { display: none }',
+}));
+
+// Swagger JSON endpoint
+app.get('/api/docs.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/search', searchRoutes);
 
 // 404 handler
 app.use(notFoundHandler);
@@ -46,6 +66,11 @@ const server = app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`🔗 API Base URL: http://localhost:${PORT}/api`);
+  
+  // Setup memory monitoring (every 5 minutes in production, 1 minute in dev)
+  const monitoringInterval = process.env.NODE_ENV === 'production' ? 300000 : 60000;
+  setupMemoryMonitoring(monitoringInterval);
+  logger.info(`📊 Performance monitoring enabled`);
 });
 
 // Graceful shutdown

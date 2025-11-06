@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/features/header/Header';
 import { SportFilter } from '@/components/features/event-filters/SportFilter';
@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { eventsApi } from '@/services/events-api';
 import { EventSummary, PaginatedResponse } from '@/types/events';
 
-export default function UpcomingEventsPage() {
+function UpcomingEventsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -145,5 +145,13 @@ export default function UpcomingEventsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function UpcomingEventsPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <UpcomingEventsContent />
+    </Suspense>
   );
 }

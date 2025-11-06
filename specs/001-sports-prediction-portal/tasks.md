@@ -291,21 +291,21 @@ Phase 7: Polish & Cross-Cutting
 
 ### Backend Tasks
 
-- [ ] T105 Extend Event repository `server/src/repositories/event.repository.ts` with findPast method filtering by status='completed'
-- [ ] T106 Extend Event service `server/src/services/event.service.ts` with listPastEvents method implementing caching (1hr TTL)
-- [ ] T107 Extend Events controller `server/src/controllers/events.controller.ts` with listPastEvents handler
-- [ ] T108 Add query parameter `status` to GET /api/events route allowing filter by 'upcoming' or 'completed'
-- [ ] T109 Update update-results worker job `server/src/workers/jobs/update-results.job.ts` to set isAccurate flag on predictions after event completion
+- [X] T105 Extend Event repository `server/src/repositories/event.repository.ts` with findPast method filtering by status='completed'
+- [X] T106 Extend Event service `server/src/services/event.service.ts` with listPastEvents method implementing caching (1hr TTL)
+- [X] T107 Extend Events controller `server/src/controllers/events.controller.ts` with listPastEvents handler
+- [X] T108 Add query parameter `status` to GET /api/events route allowing filter by 'upcoming' or 'completed'
+- [X] T109 Update update-results worker job `server/src/workers/jobs/update-results.job.ts` to set isAccurate flag on predictions after event completion
 
 ### Frontend Tasks
 
-- [ ] T110 [P] [US3] Create AccuracyBadge component in `client/components/features/prediction-display/AccuracyBadge.tsx` showing correct/incorrect with visual indicator
-- [ ] T111 [P] [US3] Create PastEventCard component in `client/components/features/event-card/PastEventCard.tsx` extending EventCard with actual result and accuracy
-- [ ] T112 [P] [US3] Create AccuracyAnalysis component in `client/components/features/prediction-display/AccuracyAnalysis.tsx` comparing prediction vs actual result
-- [ ] T113 [US3] Create past events page in `client/app/events/past/page.tsx` fetching from GET /api/events?status=completed
-- [ ] T114 [US3] Reuse filter and search components from US1 in past events page
-- [ ] T115 [US3] Update event detail page `client/app/events/[id]/page.tsx` to conditionally render accuracy analysis for completed events
-- [ ] T116 [US3] Add mobile-responsive styles to US3 components
+- [X] T110 [P] [US3] Create AccuracyBadge component in `client/components/features/prediction-display/AccuracyBadge.tsx` showing correct/incorrect with visual indicator
+- [X] T111 [P] [US3] Create PastEventCard component in `client/components/features/event-card/PastEventCard.tsx` extending EventCard with actual result and accuracy
+- [X] T112 [P] [US3] Create AccuracyAnalysis component in `client/components/features/prediction-display/AccuracyAnalysis.tsx` comparing prediction vs actual result
+- [X] T113 [US3] Create past events page in `client/app/events/past/page.tsx` fetching from GET /api/events?status=completed
+- [X] T114 [US3] Reuse filter and search components from US1 in past events page
+- [X] T115 [US3] Update event detail page `client/app/events/[id]/page.tsx` to conditionally render accuracy analysis for completed events
+- [X] T116 [US3] Add mobile-responsive styles to US3 components
 
 ### Integration Tasks
 
@@ -342,20 +342,20 @@ Phase 7: Polish & Cross-Cutting
 
 ### Backend Tasks
 
-- [ ] T122 Extend Event repository with fullTextSearch method using PostgreSQL full-text search on event name, team names, participant names
-- [ ] T123 Create search service in `server/src/services/search.service.ts` with searchEvents method implementing caching (5min TTL)
-- [ ] T124 Create search controller in `server/src/controllers/search.controller.ts` with searchHandler
-- [ ] T125 Create search routes in `server/src/routes/search.routes.ts` mapping GET /api/search?q=query
-- [ ] T126 Add query parameter validation for search (minimum 3 characters) in validator middleware
+- [X] T122 Extend Event repository with fullTextSearch method using PostgreSQL full-text search on event name, team names, participant names
+- [X] T123 Create search service in `server/src/services/search.service.ts` with searchEvents method implementing caching (5min TTL)
+- [X] T124 Create search controller in `server/src/controllers/search.controller.ts` with searchHandler
+- [X] T125 Create search routes in `server/src/routes/search.routes.ts` mapping GET /api/search?q=query
+- [X] T126 Add query parameter validation for search (minimum 3 characters) in validator middleware
 
 ### Frontend Tasks
 
-- [ ] T127 [P] [US4] Create SearchAutocomplete component in `client/components/features/search/SearchAutocomplete.tsx` with debounced API calls
-- [ ] T128 [P] [US4] Create SearchResults component in `client/components/features/search/SearchResults.tsx` displaying mixed upcoming/past events
-- [ ] T129 [US4] Update Header SearchBox component to use SearchAutocomplete with live suggestions
-- [ ] T130 [US4] Create search results page in `client/app/search/page.tsx` fetching from GET /api/search?q=query
-- [ ] T131 [US4] Add keyboard navigation (arrow keys, enter) to autocomplete suggestions
-- [ ] T132 [US4] Add mobile-responsive styles to search components
+- [X] T127 [P] [US4] Create SearchAutocomplete component in `client/components/features/search/SearchAutocomplete.tsx` with debounced API calls
+- [X] T128 [P] [US4] Create SearchResults component in `client/components/features/search/SearchResults.tsx` displaying mixed upcoming/past events
+- [X] T129 [US4] Update Header SearchBox component to use SearchAutocomplete with live suggestions
+- [X] T130 [US4] Create search results page in `client/app/search/page.tsx` fetching from GET /api/search?q=query
+- [X] T131 [US4] Add keyboard navigation (arrow keys, enter) to autocomplete suggestions
+- [X] T132 [US4] Add mobile-responsive styles to search components
 
 ### Integration Tasks
 
@@ -385,25 +385,25 @@ Phase 7: Polish & Cross-Cutting
 
 ### Tasks
 
-- [ ] T139 [P] Add comprehensive error logging in all API endpoints using Winston
-- [ ] T140 [P] Add performance monitoring middleware in `server/src/middleware/performance.ts` tracking response times
-- [ ] T141 [P] Create database indexes for frequently queried fields per data-model.md
-- [ ] T142 [P] Optimize Prisma queries with selective includes (avoid n+1 queries)
-- [ ] T143 [P] Add Redis connection error handling with graceful degradation (serve stale cache)
-- [ ] T144 [P] Add OpenAI API error handling with retry logic in prediction worker
-- [ ] T145 [P] Add TheSportsDB API error handling with retry logic in fetch-events worker
-- [ ] T146 [P] Create custom 404 page in `client/app/not-found.tsx` with link back to home
-- [ ] T147 [P] Create custom error page in `client/app/error.tsx` with error boundary
-- [ ] T148 [P] Add loading skeletons to all async pages using Suspense boundaries
-- [ ] T149 [P] Optimize images with Next.js Image component for team logos
-- [ ] T150 [P] Add meta tags and Open Graph tags for SEO in all pages
-- [ ] T151 [P] Add sitemap generation in `client/app/sitemap.ts`
-- [ ] T152 [P] Add robots.txt in `client/public/robots.txt`
-- [ ] T153 Add favicon and app icons in `client/public/`
+- [X] T139 [P] Add comprehensive error logging in all API endpoints using Winston
+- [X] T140 [P] Add performance monitoring middleware in `server/src/middleware/performance.ts` tracking response times
+- [X] T141 [P] Create database indexes for frequently queried fields per data-model.md
+- [X] T142 [P] Optimize Prisma queries with selective includes (avoid n+1 queries)
+- [X] T143 [P] Add Redis connection error handling with graceful degradation (serve stale cache)
+- [X] T144 [P] Add OpenAI API error handling with retry logic in prediction worker
+- [X] T145 [P] Add TheSportsDB API error handling with retry logic in fetch-events worker
+- [X] T146 [P] Create custom 404 page in `client/app/not-found.tsx` with link back to home
+- [X] T147 [P] Create custom error page in `client/app/error.tsx` with error boundary
+- [X] T148 [P] Add loading skeletons to all async pages using Suspense boundaries
+- [X] T149 [P] Optimize images with Next.js Image component for team logos
+- [X] T150 [P] Add meta tags and Open Graph tags for SEO in all pages
+- [X] T151 [P] Add sitemap generation in `client/app/sitemap.ts`
+- [X] T152 [P] Add robots.txt in `client/app/robots.ts`
+- [X] T153 Add favicon and app icons in `client/app/icon.tsx`
 - [ ] T154 Run Lighthouse performance audit and optimize for 90+ score
 - [ ] T155 Run Lighthouse accessibility audit and fix any issues for 100 score
 - [ ] T156 Run security audit with `npm audit` and fix vulnerabilities
-- [ ] T157 Add CSP headers in Next.js config for security
+- [X] T157 Add CSP headers in Next.js config for security
 - [ ] T158 Add analytics tracking (Google Analytics or Plausible) if requested
 - [ ] T159 Create production environment files (.env.production) for both client and server
 - [ ] T160 Create deployment documentation in `docs/DEPLOYMENT.md`

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin } from 'lucide-react';
 import { PredictionSummary } from '../prediction-display/PredictionSummary';
+import TeamAvatar from '@/components/ui/TeamAvatar';
 import { EventSummary } from '@/types/events';
 
 interface EventCardProps {
@@ -49,13 +50,12 @@ export function EventCard({ event, className = '' }: EventCardProps) {
             <div className="flex items-center justify-between gap-4">
               {/* Home team */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                {event.homeTeam.logoUrl && (
-                  <img
-                    src={event.homeTeam.logoUrl}
-                    alt={event.homeTeam.name}
-                    className="h-8 w-8 object-contain flex-shrink-0"
-                  />
-                )}
+                <TeamAvatar
+                  logoUrl={event.homeTeam?.logoUrl}
+                  name={event.homeTeam?.name}
+                  shortName={event.homeTeam?.shortName}
+                  className="h-8 w-8 rounded-full"
+                />
                 <span className="font-medium truncate">
                   {event.homeTeam.shortName}
                 </span>
@@ -71,13 +71,12 @@ export function EventCard({ event, className = '' }: EventCardProps) {
                 <span className="font-medium truncate">
                   {event.awayTeam.shortName}
                 </span>
-                {event.awayTeam.logoUrl && (
-                  <img
-                    src={event.awayTeam.logoUrl}
-                    alt={event.awayTeam.name}
-                    className="h-8 w-8 object-contain flex-shrink-0"
-                  />
-                )}
+                <TeamAvatar
+                  logoUrl={event.awayTeam?.logoUrl}
+                  name={event.awayTeam?.name}
+                  shortName={event.awayTeam?.shortName}
+                  className="h-8 w-8 rounded-full"
+                />
               </div>
             </div>
           ) : (

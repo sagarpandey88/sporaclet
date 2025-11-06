@@ -167,12 +167,34 @@ export async function processUpdateResultsJob(
         // Update prediction accuracy if prediction exists
         if (event.predictions.length > 0) {
           const prediction = event.predictions[0];
-          const isAccurate = isPredictionAccurate(prediction, winner);
+          
+          // Parse probabilities from JSON
+          const probabilities = prediction.probabilities as any;
+          const homeWinProbability = probabilities?.homeWinProbability || 0;
+          const awayWinProbability = probabilities?.awayWinProbability || 0;
+          const drawProbability = probabilities?.drawProbability || 0;
+          
+          const isAccurate = isPredictionAccurate(
+            { homeWinProbability, awayWinProbability, drawProbability },
+            winner
+          );
+
+          // Generate accuracy note
+          let accuracyNote: string | undefined;
+          if (isAccurate) {
+            accuracyNote = `Correctly predicted ${winner} win`;
+          } else {
+            const predictedWinner = homeWinProbability > awayWinProbability
+              ? (homeWinProbability > drawProbability ? 'home' : 'draw')
+              : (awayWinProbability > drawProbability ? 'away' : 'draw');
+            accuracyNote = `Predicted ${predictedWinner} win, but actual result was ${winner}`;
+          }
 
           await prisma.prediction.update({
             where: { id: prediction.id },
             data: {
               isAccurate,
+              accuracyNote,
             },
           });
 
@@ -182,6 +204,7 @@ export async function processUpdateResultsJob(
             eventId: event.id,
             predictionId: prediction.id,
             isAccurate,
+            accuracyNote,
             winner,
           });
         }

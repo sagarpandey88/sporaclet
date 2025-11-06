@@ -160,6 +160,8 @@ model Event {
   @@index([date, status])
   @@index([homeTeamId, awayTeamId])
   @@index([status, date])
+  @@index([eventName]) // For search
+  @@index([league])    // For filtering
   @@map("events")
 }
 

@@ -103,6 +103,78 @@ class EventRepository {
   }
 
   /**
+   * Find past/completed events with filters
+   */
+  async findPast(filters: {
+    sport?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    league?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<EventWithRelations[]> {
+    const where: Prisma.EventWhereInput = {
+      status: EventStatus.completed,
+      isDeleted: false,
+      date: {
+        lte: filters.dateTo || new Date(),
+        ...(filters.dateFrom && { gte: filters.dateFrom }),
+      },
+      ...(filters.sport && {
+        sport: {
+          name: filters.sport,
+        },
+      }),
+      ...(filters.league && {
+        league: {
+          contains: filters.league,
+          mode: 'insensitive' as Prisma.QueryMode,
+        },
+      }),
+    };
+
+    return prisma.event.findMany({
+      where,
+      include: {
+        sport: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+          },
+        },
+        homeTeam: {
+          select: {
+            id: true,
+            name: true,
+            shortName: true,
+            logoUrl: true,
+          },
+        },
+        awayTeam: {
+          select: {
+            id: true,
+            name: true,
+            shortName: true,
+            logoUrl: true,
+          },
+        },
+        predictions: {
+          orderBy: {
+            generatedAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+      orderBy: {
+        date: 'desc', // Most recent first for past events
+      },
+      take: filters.limit,
+      skip: filters.offset,
+    });
+  }
+
+  /**
    * Count upcoming events with filters
    */
   async countByFilters(filters: {
@@ -117,6 +189,38 @@ class EventRepository {
       date: {
         gte: filters.dateFrom || new Date(),
         ...(filters.dateTo && { lte: filters.dateTo }),
+      },
+      ...(filters.sport && {
+        sport: {
+          name: filters.sport,
+        },
+      }),
+      ...(filters.league && {
+        league: {
+          contains: filters.league,
+          mode: 'insensitive' as Prisma.QueryMode,
+        },
+      }),
+    };
+
+    return prisma.event.count({ where });
+  }
+
+  /**
+   * Count past/completed events with filters
+   */
+  async countPast(filters: {
+    sport?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    league?: string;
+  }): Promise<number> {
+    const where: Prisma.EventWhereInput = {
+      status: EventStatus.completed,
+      isDeleted: false,
+      date: {
+        lte: filters.dateTo || new Date(),
+        ...(filters.dateFrom && { gte: filters.dateFrom }),
       },
       ...(filters.sport && {
         sport: {
@@ -273,6 +377,227 @@ class EventRepository {
       take: filters.limit,
       skip: filters.offset,
     });
+  }
+
+  /**
+   * Full-text search across events using PostgreSQL full-text search
+   * Searches event names, team names, and participant names
+   */
+  async fullTextSearch(filters: {
+    query: string;
+    sport?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<EventWithRelations[]> {
+    const searchQuery = filters.query.toLowerCase();
+    
+    const where: Prisma.EventWhereInput = {
+      isDeleted: false,
+      OR: [
+        {
+          eventName: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          homeTeam: {
+            OR: [
+              {
+                name: {
+                  contains: searchQuery,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+              {
+                shortName: {
+                  contains: searchQuery,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+            ],
+          },
+        },
+        {
+          awayTeam: {
+            OR: [
+              {
+                name: {
+                  contains: searchQuery,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+              {
+                shortName: {
+                  contains: searchQuery,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+            ],
+          },
+        },
+        {
+          participant1Name: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          participant2Name: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          venue: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          league: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+      ],
+      ...(filters.sport && {
+        sport: {
+          name: filters.sport,
+        },
+      }),
+    };
+
+    return prisma.event.findMany({
+      where,
+      include: {
+        sport: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+          },
+        },
+        homeTeam: {
+          select: {
+            id: true,
+            name: true,
+            shortName: true,
+            logoUrl: true,
+          },
+        },
+        awayTeam: {
+          select: {
+            id: true,
+            name: true,
+            shortName: true,
+            logoUrl: true,
+          },
+        },
+        predictions: {
+          orderBy: {
+            generatedAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+      orderBy: [
+        {
+          date: 'asc',
+        },
+      ],
+      take: filters.limit,
+      skip: filters.offset,
+    });
+  }
+
+  /**
+   * Count search results
+   */
+  async countSearchResults(filters: {
+    query: string;
+    sport?: string;
+  }): Promise<number> {
+    const searchQuery = filters.query.toLowerCase();
+    
+    const where: Prisma.EventWhereInput = {
+      isDeleted: false,
+      OR: [
+        {
+          eventName: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          homeTeam: {
+            OR: [
+              {
+                name: {
+                  contains: searchQuery,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+              {
+                shortName: {
+                  contains: searchQuery,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+            ],
+          },
+        },
+        {
+          awayTeam: {
+            OR: [
+              {
+                name: {
+                  contains: searchQuery,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+              {
+                shortName: {
+                  contains: searchQuery,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+            ],
+          },
+        },
+        {
+          participant1Name: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          participant2Name: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          venue: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          league: {
+            contains: searchQuery,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+      ],
+      ...(filters.sport && {
+        sport: {
+          name: filters.sport,
+        },
+      }),
+    };
+
+    return prisma.event.count({ where });
   }
 }
 

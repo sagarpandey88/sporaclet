@@ -27,6 +27,30 @@ export const listEvents = asyncHandler(
 );
 
 /**
+ * List past/completed events with pagination and filters
+ * GET /api/events/past
+ */
+export const listPastEvents = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { sport, date_from, date_to, league, page, per_page } = req.query;
+
+    const result = await eventService.listPastEvents({
+      sport: sport as string | undefined,
+      dateFrom: date_from as string | undefined,
+      dateTo: date_to as string | undefined,
+      league: league as string | undefined,
+      page: page ? parseInt(page as string) : undefined,
+      perPage: per_page ? parseInt(per_page as string) : undefined,
+    });
+
+    // Set cache headers (1 hour)
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.status(200).json(result);
+  }
+);
+
+/**
  * Search events by query string
  * GET /api/events/search
  */

@@ -53,6 +53,10 @@ export interface EventSummary {
   venue?: string;
   status: EventStatus;
   league?: string;
+  // Fields for past/completed events
+  homeScore?: number;
+  awayScore?: number;
+  winner?: WinnerType;
   prediction?: PredictionSummary;
 }
 
@@ -69,6 +73,9 @@ export interface PredictionSummary {
     draw?: number;
   };
   generatedAt: string; // ISO 8601
+  // Fields for accuracy display on past events
+  isAccurate?: boolean;
+  accuracyNote?: string;
 }
 
 /**

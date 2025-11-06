@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import TeamAvatar from '@/components/ui/TeamAvatar';
 
 interface EventHeaderProps {
   eventName: string;
@@ -89,13 +90,12 @@ export function EventHeader({
         <div className="flex items-center justify-center sm:justify-between gap-8 flex-wrap">
           {/* Home team */}
           <div className="flex flex-col items-center gap-4 flex-1 min-w-[200px]">
-            {homeTeam.logoUrl && (
-              <img
-                src={homeTeam.logoUrl}
-                alt={homeTeam.name}
-                className="h-24 w-24 sm:h-32 sm:w-32 object-contain"
-              />
-            )}
+            <TeamAvatar
+              logoUrl={homeTeam?.logoUrl}
+              name={homeTeam?.name}
+              shortName={homeTeam?.shortName}
+              className="h-24 w-24 sm:h-32 sm:w-32 rounded-md"
+            />
             <div className="text-center">
               <h2 className="text-2xl font-bold">{homeTeam.shortName}</h2>
               <p className="text-sm text-muted-foreground">{homeTeam.name}</p>
@@ -107,13 +107,12 @@ export function EventHeader({
 
           {/* Away team */}
           <div className="flex flex-col items-center gap-4 flex-1 min-w-[200px]">
-            {awayTeam.logoUrl && (
-              <img
-                src={awayTeam.logoUrl}
-                alt={awayTeam.name}
-                className="h-24 w-24 sm:h-32 sm:w-32 object-contain"
-              />
-            )}
+            <TeamAvatar
+              logoUrl={awayTeam?.logoUrl}
+              name={awayTeam?.name}
+              shortName={awayTeam?.shortName}
+              className="h-24 w-24 sm:h-32 sm:w-32 rounded-md"
+            />
             <div className="text-center">
               <h2 className="text-2xl font-bold">{awayTeam.shortName}</h2>
               <p className="text-sm text-muted-foreground">{awayTeam.name}</p>
