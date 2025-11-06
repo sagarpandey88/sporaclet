@@ -1,0 +1,953 @@
+openapi: 3.0.3
+info:
+  title: Sports Prediction Portal API
+  description: |
+    RESTful API for AI-assisted sports prediction portal.
+    
+    ## Authentication
+    Public API for MVP (no authentication required).
+    
+    ## Rate Limiting
+    - **Limit**: 100 requests per minute per IP address
+    - **Headers**: 
+      - `X-RateLimit-Limit`: Maximum requests allowed
+      - `X-RateLimit-Remaining`: Requests remaining in current window
+      - `X-RateLimit-Reset`: Unix timestamp when limit resets
+    
+    ## Caching
+    - Event listings: 1 hour cache
+    - Event details: 15 minutes cache
+    - Headers include `Cache-Control` and `ETag`
+    
+    ## Pagination
+    - Default page size: 20 items
+    - Maximum page size: 50 items
+    - Response includes pagination metadata
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@sporaclet.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001/api
+    description: Local development server
+  - url: https://api.sporaclet.com/api
+    description: Production server
+
+tags:
+  - name: events
+    description: Sports events and predictions
+  - name: health
+    description: Health check and monitoring
+
+paths:
+  /events:
+    get:
+      summary: List upcoming sports events
+      description: |
+        Retrieve paginated list of upcoming sports events with AI predictions.
+        Results are cached for 1 hour. Supports filtering by sport, date, and league.
+      operationId: listEvents
+      tags:
+        - events
+      parameters:
+        - name: sport
+          in: query
+          description: Filter by sport type
+          required: false
+          schema:
+            type: string
+            enum: [football, basketball, cricket, tennis]
+          example: football
+        
+        - name: date_from
+          in: query
+          description: Filter events from this date (ISO 8601 format)
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2025-01-01"
+        
+        - name: date_to
+          in: query
+          description: Filter events until this date (ISO 8601 format)
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2025-01-31"
+        
+        - name: league
+          in: query
+          description: Filter by league name
+          required: false
+          schema:
+            type: string
+          example: "Premier League"
+        
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          example: 20
+      
+      responses:
+        '200':
+          description: Successful response with event listings
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            Cache-Control:
+              schema:
+                type: string
+              description: Cache control header
+              example: "public, max-age=3600"
+            ETag:
+              schema:
+                type: string
+              description: Entity tag for cache validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventListResponse'
+              examples:
+                success:
+                  $ref: '#/components/examples/EventListSuccess'
+        
+        '400':
+          description: Bad request - invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_date:
+                  summary: Invalid date format
+                  value:
+                    error:
+                      code: "INVALID_DATE_FORMAT"
+                      message: "date_from must be in ISO 8601 format (YYYY-MM-DD)"
+                      details:
+                        field: "date_from"
+                        value: "invalid-date"
+        
+        '429':
+          description: Rate limit exceeded
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+              description: Always 0 when rate limited
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds until rate limit resets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rate_limited:
+                  summary: Rate limit exceeded
+                  value:
+                    error:
+                      code: "RATE_LIMIT_EXCEEDED"
+                      message: "Too many requests. Please try again later."
+                      details:
+                        retry_after: 60
+        
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /events/{id}:
+    get:
+      summary: Get event details
+      description: |
+        Retrieve detailed information for a specific event including AI prediction,
+        team/player statistics, injuries, and head-to-head data.
+        Results are cached for 15 minutes.
+      operationId: getEventById
+      tags:
+        - events
+      parameters:
+        - name: id
+          in: path
+          description: Event UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      
+      responses:
+        '200':
+          description: Successful response with event details
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            Cache-Control:
+              schema:
+                type: string
+              description: Cache control header
+              example: "public, max-age=900"
+            ETag:
+              schema:
+                type: string
+              description: Entity tag for cache validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDetailResponse'
+              examples:
+                football_match:
+                  $ref: '#/components/examples/EventDetailFootball'
+        
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  summary: Event not found
+                  value:
+                    error:
+                      code: "EVENT_NOT_FOUND"
+                      message: "Event with ID '550e8400-e29b-41d4-a716-446655440000' not found"
+                      details:
+                        event_id: "550e8400-e29b-41d4-a716-446655440000"
+        
+        '429':
+          $ref: '#/paths/~1events/get/responses/429'
+        
+        '500':
+          $ref: '#/paths/~1events/get/responses/500'
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: |
+        Returns health status of the API and dependent services.
+        Used for monitoring and load balancer health checks.
+      operationId: healthCheck
+      tags:
+        - health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: All services healthy
+                  value:
+                    status: "healthy"
+                    timestamp: "2025-01-15T10:30:00Z"
+                    version: "1.0.0"
+                    services:
+                      database:
+                        status: "healthy"
+                        latency_ms: 5
+                      redis:
+                        status: "healthy"
+                        latency_ms: 2
+                      external_api:
+                        status: "healthy"
+                        latency_ms: 150
+        
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                unhealthy:
+                  summary: Database connection failed
+                  value:
+                    status: "unhealthy"
+                    timestamp: "2025-01-15T10:30:00Z"
+                    version: "1.0.0"
+                    services:
+                      database:
+                        status: "unhealthy"
+                        error: "Connection timeout"
+                      redis:
+                        status: "healthy"
+                        latency_ms: 2
+                      external_api:
+                        status: "degraded"
+                        latency_ms: 5000
+
+components:
+  headers:
+    X-RateLimit-Limit:
+      description: Maximum requests allowed per minute
+      schema:
+        type: integer
+        example: 100
+    
+    X-RateLimit-Remaining:
+      description: Requests remaining in current window
+      schema:
+        type: integer
+        example: 85
+    
+    X-RateLimit-Reset:
+      description: Unix timestamp when rate limit resets
+      schema:
+        type: integer
+        example: 1705315800
+
+  schemas:
+    EventListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    
+    EventSummary:
+      type: object
+      required:
+        - id
+        - sport
+        - event_name
+        - date
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Event unique identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        
+        sport:
+          type: string
+          description: Sport type
+          enum: [football, basketball, cricket, tennis]
+          example: "football"
+        
+        event_name:
+          type: string
+          description: Full event name
+          example: "Manchester United vs Liverpool"
+        
+        date:
+          type: string
+          format: date-time
+          description: Event start date/time (ISO 8601)
+          example: "2025-01-20T15:00:00Z"
+        
+        status:
+          type: string
+          description: Event status
+          enum: [upcoming, live, completed, postponed, cancelled]
+          example: "upcoming"
+        
+        venue:
+          type: string
+          description: Venue name
+          nullable: true
+          example: "Old Trafford"
+        
+        league:
+          type: string
+          description: League or tournament name
+          nullable: true
+          example: "Premier League"
+        
+        home_team:
+          $ref: '#/components/schemas/TeamSummary'
+        
+        away_team:
+          $ref: '#/components/schemas/TeamSummary'
+        
+        prediction:
+          $ref: '#/components/schemas/PredictionSummary'
+          nullable: true
+    
+    EventDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/EventSummary'
+        - type: object
+          properties:
+            season:
+              type: string
+              nullable: true
+              example: "2024/2025"
+            
+            round:
+              type: string
+              nullable: true
+              example: "Matchday 21"
+            
+            description:
+              type: string
+              nullable: true
+              example: "Crucial Premier League encounter between fierce rivals"
+            
+            home_score:
+              type: integer
+              nullable: true
+              description: Final score for home team (null if not completed)
+              example: null
+            
+            away_score:
+              type: integer
+              nullable: true
+              description: Final score for away team (null if not completed)
+              example: null
+            
+            winner:
+              type: string
+              nullable: true
+              enum: [home, away, draw]
+              description: Match winner (null if not completed)
+              example: null
+            
+            attendance:
+              type: integer
+              nullable: true
+              description: Match attendance
+              example: 74500
+            
+            home_team_detail:
+              $ref: '#/components/schemas/TeamDetail'
+            
+            away_team_detail:
+              $ref: '#/components/schemas/TeamDetail'
+            
+            prediction_detail:
+              $ref: '#/components/schemas/PredictionDetail'
+              nullable: true
+            
+            head_to_head:
+              $ref: '#/components/schemas/HeadToHead'
+              nullable: true
+    
+    TeamSummary:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "7a5e9b6f-1234-4321-abcd-ef1234567890"
+        
+        name:
+          type: string
+          example: "Manchester United"
+        
+        short_name:
+          type: string
+          example: "Man Utd"
+        
+        logo_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://example.com/logos/manutd.png"
+    
+    TeamDetail:
+      allOf:
+        - $ref: '#/components/schemas/TeamSummary'
+        - type: object
+          properties:
+            country:
+              type: string
+              example: "England"
+            
+            venue:
+              type: string
+              nullable: true
+              example: "Old Trafford"
+            
+            venue_capacity:
+              type: integer
+              nullable: true
+              example: 74500
+            
+            players:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlayerSummary'
+            
+            injuries:
+              type: array
+              items:
+                $ref: '#/components/schemas/InjurySummary'
+    
+    PlayerSummary:
+      type: object
+      required:
+        - id
+        - display_name
+        - position
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "abc12345-6789-4def-ghij-klmnopqrstuv"
+        
+        display_name:
+          type: string
+          example: "Bruno Fernandes"
+        
+        position:
+          type: string
+          example: "MID"
+        
+        jersey_number:
+          type: integer
+          nullable: true
+          example: 8
+        
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://example.com/players/bruno.jpg"
+    
+    InjurySummary:
+      type: object
+      required:
+        - player_name
+        - injury_type
+        - severity
+        - status
+      properties:
+        player_name:
+          type: string
+          example: "Marcus Rashford"
+        
+        injury_type:
+          type: string
+          example: "Hamstring strain"
+        
+        severity:
+          type: string
+          enum: [minor, moderate, major, season_ending]
+          example: "moderate"
+        
+        status:
+          type: string
+          enum: [active, recovered, day_to_day]
+          example: "active"
+        
+        expected_return_date:
+          type: string
+          format: date
+          nullable: true
+          example: "2025-01-25"
+    
+    PredictionSummary:
+      type: object
+      required:
+        - predicted_winner
+        - confidence
+      properties:
+        predicted_winner:
+          type: string
+          enum: [home, away, draw]
+          example: "home"
+        
+        confidence:
+          type: string
+          enum: [low, medium, high]
+          example: "high"
+        
+        probabilities:
+          type: object
+          properties:
+            home:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              example: 0.65
+            away:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              example: 0.28
+            draw:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              example: 0.07
+          description: Probability distribution (sums to ~1.0)
+    
+    PredictionDetail:
+      allOf:
+        - $ref: '#/components/schemas/PredictionSummary'
+        - type: object
+          properties:
+            key_factors:
+              type: array
+              items:
+                type: string
+              description: Factors influencing the prediction
+              example:
+                - "Home team has won 4 of last 5 matches"
+                - "Away team missing 2 key defenders due to injury"
+                - "Home team strong record at this venue (80% win rate)"
+            
+            model_version:
+              type: string
+              example: "gpt-4-2024-01"
+            
+            generated_at:
+              type: string
+              format: date-time
+              example: "2025-01-15T08:00:00Z"
+    
+    HeadToHead:
+      type: object
+      required:
+        - total_matches
+        - team1_wins
+        - team2_wins
+        - draws
+      properties:
+        total_matches:
+          type: integer
+          description: Total matches played between teams
+          example: 58
+        
+        team1_wins:
+          type: integer
+          description: Wins for first team (home team in context)
+          example: 24
+        
+        team2_wins:
+          type: integer
+          description: Wins for second team (away team in context)
+          example: 21
+        
+        draws:
+          type: integer
+          example: 13
+        
+        last_five_results:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              winner:
+                type: string
+                enum: [team1, team2, draw]
+              score:
+                type: string
+                example: "2-1"
+          description: Results of last 5 matches
+          maxItems: 5
+        
+        average_goals_team1:
+          type: number
+          format: float
+          example: 1.8
+        
+        average_goals_team2:
+          type: number
+          format: float
+          example: 1.6
+    
+    PaginationMetadata:
+      type: object
+      required:
+        - current_page
+        - per_page
+        - total_items
+        - total_pages
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+          example: 1
+        
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 50
+          example: 20
+        
+        total_items:
+          type: integer
+          minimum: 0
+          example: 156
+        
+        total_pages:
+          type: integer
+          minimum: 0
+          example: 8
+        
+        has_next:
+          type: boolean
+          example: true
+        
+        has_prev:
+          type: boolean
+          example: false
+    
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: "INVALID_DATE_FORMAT"
+            
+            message:
+              type: string
+              description: Human-readable error message
+              example: "date_from must be in ISO 8601 format (YYYY-MM-DD)"
+            
+            details:
+              type: object
+              description: Additional error context
+              additionalProperties: true
+    
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - version
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: "healthy"
+        
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:30:00Z"
+        
+        version:
+          type: string
+          description: API version
+          example: "1.0.0"
+        
+        services:
+          type: object
+          properties:
+            database:
+              $ref: '#/components/schemas/ServiceHealth'
+            redis:
+              $ref: '#/components/schemas/ServiceHealth'
+            external_api:
+              $ref: '#/components/schemas/ServiceHealth'
+    
+    ServiceHealth:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: "healthy"
+        
+        latency_ms:
+          type: integer
+          description: Service response latency in milliseconds
+          nullable: true
+          example: 5
+        
+        error:
+          type: string
+          description: Error message if unhealthy
+          nullable: true
+          example: "Connection timeout"
+
+  examples:
+    EventListSuccess:
+      summary: Successful event listing
+      value:
+        data:
+          - id: "550e8400-e29b-41d4-a716-446655440000"
+            sport: "football"
+            event_name: "Manchester United vs Liverpool"
+            date: "2025-01-20T15:00:00Z"
+            status: "upcoming"
+            venue: "Old Trafford"
+            league: "Premier League"
+            home_team:
+              id: "7a5e9b6f-1234-4321-abcd-ef1234567890"
+              name: "Manchester United"
+              short_name: "Man Utd"
+              logo_url: "https://example.com/logos/manutd.png"
+            away_team:
+              id: "8b6f0c7e-5678-9012-bcde-f12345678901"
+              name: "Liverpool"
+              short_name: "Liverpool"
+              logo_url: "https://example.com/logos/liverpool.png"
+            prediction:
+              predicted_winner: "home"
+              confidence: "high"
+              probabilities:
+                home: 0.65
+                away: 0.28
+                draw: 0.07
+        pagination:
+          current_page: 1
+          per_page: 20
+          total_items: 156
+          total_pages: 8
+          has_next: true
+          has_prev: false
+    
+    EventDetailFootball:
+      summary: Football match detail
+      value:
+        id: "550e8400-e29b-41d4-a716-446655440000"
+        sport: "football"
+        event_name: "Manchester United vs Liverpool"
+        date: "2025-01-20T15:00:00Z"
+        status: "upcoming"
+        venue: "Old Trafford"
+        league: "Premier League"
+        season: "2024/2025"
+        round: "Matchday 21"
+        description: "Crucial Premier League encounter between fierce rivals"
+        home_score: null
+        away_score: null
+        winner: null
+        attendance: null
+        home_team:
+          id: "7a5e9b6f-1234-4321-abcd-ef1234567890"
+          name: "Manchester United"
+          short_name: "Man Utd"
+          logo_url: "https://example.com/logos/manutd.png"
+        away_team:
+          id: "8b6f0c7e-5678-9012-bcde-f12345678901"
+          name: "Liverpool"
+          short_name: "Liverpool"
+          logo_url: "https://example.com/logos/liverpool.png"
+        home_team_detail:
+          id: "7a5e9b6f-1234-4321-abcd-ef1234567890"
+          name: "Manchester United"
+          short_name: "Man Utd"
+          logo_url: "https://example.com/logos/manutd.png"
+          country: "England"
+          venue: "Old Trafford"
+          venue_capacity: 74500
+          players:
+            - id: "abc12345-6789-4def-ghij-klmnopqrstuv"
+              display_name: "Bruno Fernandes"
+              position: "MID"
+              jersey_number: 8
+              photo_url: "https://example.com/players/bruno.jpg"
+          injuries:
+            - player_name: "Marcus Rashford"
+              injury_type: "Hamstring strain"
+              severity: "moderate"
+              status: "active"
+              expected_return_date: "2025-01-25"
+        away_team_detail:
+          id: "8b6f0c7e-5678-9012-bcde-f12345678901"
+          name: "Liverpool"
+          short_name: "Liverpool"
+          logo_url: "https://example.com/logos/liverpool.png"
+          country: "England"
+          venue: "Anfield"
+          venue_capacity: 53394
+          players:
+            - id: "def67890-abcd-1234-efgh-ijklmnopqrst"
+              display_name: "Mohamed Salah"
+              position: "FWD"
+              jersey_number: 11
+              photo_url: "https://example.com/players/salah.jpg"
+          injuries: []
+        prediction_detail:
+          predicted_winner: "home"
+          confidence: "high"
+          probabilities:
+            home: 0.65
+            away: 0.28
+            draw: 0.07
+          key_factors:
+            - "Home team has won 4 of last 5 matches"
+            - "Away team missing 2 key defenders due to injury"
+            - "Home team strong record at this venue (80% win rate)"
+          model_version: "gpt-4-2024-01"
+          generated_at: "2025-01-15T08:00:00Z"
+        head_to_head:
+          total_matches: 58
+          team1_wins: 24
+          team2_wins: 21
+          draws: 13
+          last_five_results:
+            - date: "2024-12-01"
+              winner: "team1"
+              score: "2-1"
+            - date: "2024-09-15"
+              winner: "team2"
+              score: "0-3"
+            - date: "2024-04-07"
+              winner: "draw"
+              score: "2-2"
+          average_goals_team1: 1.8
+          average_goals_team2: 1.6
