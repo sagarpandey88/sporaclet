@@ -1,0 +1,233 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventStatus {
+  upcoming
+  live
+  completed
+  postponed
+  cancelled
+}
+
+enum WinnerType {
+  home
+  away
+  draw
+}
+
+enum ConfidenceLevel {
+  low
+  medium
+  high
+}
+
+enum InjurySeverity {
+  minor
+  moderate
+  major
+  season_ending
+}
+
+enum InjuryStatus {
+  active
+  recovered
+  day_to_day
+}
+
+model Sport {
+  id                 String   @id @default(uuid())
+  name               String   @unique
+  displayName        String
+  hasTeams           Boolean  @default(true)
+  playerPositions    Json     // Array of position names
+  visualizationType  String   // "field", "court", "track", etc.
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  // Relations
+  teams              Team[]
+  players            Player[]
+  events             Event[]
+  
+  @@map("sports")
+}
+
+model Team {
+  id             String   @id @default(uuid())
+  externalId     String   @unique
+  name           String
+  shortName      String
+  sportId        String
+  country        String
+  league         String
+  founded        Int?
+  logoUrl        String?
+  venue          String?
+  venueCapacity  Int?
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relations
+  sport          Sport    @relation(fields: [sportId], references: [id])
+  players        Player[]
+  homeEvents     Event[]  @relation("HomeTeam")
+  awayEvents     Event[]  @relation("AwayTeam")
+  h2hAsTeam1     HeadToHead[] @relation("Team1")
+  h2hAsTeam2     HeadToHead[] @relation("Team2")
+  
+  @@index([externalId])
+  @@index([sportId, name])
+  @@index([league])
+  @@map("teams")
+}
+
+model Player {
+  id             String   @id @default(uuid())
+  externalId     String   @unique
+  firstName      String
+  lastName       String
+  displayName    String
+  teamId         String?
+  sportId        String
+  position       String
+  jerseyNumber   Int?
+  birthDate      DateTime?
+  nationality    String?
+  height         Int?     // centimeters
+  weight         Int?     // kilograms
+  photoUrl       String?
+  statistics     Json?    // Sport-specific stats
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relations
+  team           Team?    @relation(fields: [teamId], references: [id])
+  sport          Sport    @relation(fields: [sportId], references: [id])
+  injuries       Injury[]
+  
+  @@index([externalId])
+  @@index([teamId])
+  @@index([sportId])
+  @@index([displayName])
+  @@map("players")
+}
+
+model Event {
+  id                String      @id @default(uuid())
+  externalId        String      @unique
+  sportId           String
+  homeTeamId        String?
+  awayTeamId        String?
+  participant1Name  String?     // For individual sports
+  participant2Name  String?     // For individual sports
+  eventName         String
+  venue             String?
+  date              DateTime
+  status            EventStatus @default(upcoming)
+  league            String?
+  season            String?
+  round             String?
+  homeScore         Int?
+  awayScore         Int?
+  winner            WinnerType?
+  attendance        Int?
+  description       String?
+  homeTeamSnapshot  Json?       // Denormalized: { players: [...], injuries: [...] }
+  awayTeamSnapshot  Json?       // Denormalized: { players: [...], injuries: [...] }
+  snapshotGeneratedAt DateTime? // When snapshots were last updated
+  isDeleted         Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  // Relations
+  sport             Sport       @relation(fields: [sportId], references: [id])
+  homeTeam          Team?       @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam          Team?       @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  predictions       Prediction[]
+  
+  @@index([externalId])
+  @@index([sportId, status])
+  @@index([date, status])
+  @@index([homeTeamId, awayTeamId])
+  @@index([status, date])
+  @@index([eventName]) // For search
+  @@index([league])    // For filtering
+  @@map("events")
+}
+
+model Prediction {
+  id              String          @id @default(uuid())
+  eventId         String
+  probabilities   Json            // {"home": 0.65, "away": 0.35}
+  predictedWinner WinnerType
+  confidence      ConfidenceLevel
+  keyFactors      Json            // Array of strings
+  modelVersion    String
+  generatedAt     DateTime        @default(now())
+  isAccurate      Boolean?
+  accuracyNote    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  event           Event           @relation(fields: [eventId], references: [id])
+  
+  @@index([eventId])
+  @@index([generatedAt])
+  @@index([isAccurate])
+  @@map("predictions")
+}
+
+model Injury {
+  id                 String        @id @default(uuid())
+  playerId           String
+  injuryType         String
+  severity           InjurySeverity
+  occurredDate       DateTime
+  expectedReturnDate DateTime?
+  status             InjuryStatus  @default(active)
+  notes              String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  
+  // Relations
+  player             Player        @relation(fields: [playerId], references: [id])
+  
+  @@index([playerId, status])
+  @@index([status, expectedReturnDate])
+  @@map("injuries")
+}
+
+model HeadToHead {
+  id                 String   @id @default(uuid())
+  team1Id            String
+  team2Id            String
+  totalMatches       Int      @default(0)
+  team1Wins          Int      @default(0)
+  team2Wins          Int      @default(0)
+  draws              Int      @default(0)
+  lastFiveResults    Json     // Array of last 5 results
+  averageGoalsTeam1  Float    @default(0)
+  averageGoalsTeam2  Float    @default(0)
+  lastUpdated        DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  // Relations
+  team1              Team     @relation("Team1", fields: [team1Id], references: [id])
+  team2              Team     @relation("Team2", fields: [team2Id], references: [id])
+  
+  @@unique([team1Id, team2Id])
+  @@index([team1Id, team2Id])
+  @@map("head_to_head")
+}
