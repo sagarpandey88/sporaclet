@@ -51,35 +51,35 @@ function determineWinner(homeScore: number, awayScore: number): WinnerType {
  */
 function isPredictionAccurate(
   prediction: {
-    homeWinProbability: number;
-    awayWinProbability: number;
-    drawProbability: number;
+    home: number;
+    away: number;
+    draw: number;
   },
   actualWinner: WinnerType
 ): boolean {
   const maxProb = Math.max(
-    prediction.homeWinProbability,
-    prediction.awayWinProbability,
-    prediction.drawProbability
+    prediction.home,
+    prediction.away,
+    prediction.draw
   );
 
   if (
     actualWinner === WinnerType.home &&
-    prediction.homeWinProbability === maxProb
+    prediction.home === maxProb
   ) {
     return true;
   }
 
   if (
     actualWinner === WinnerType.away &&
-    prediction.awayWinProbability === maxProb
+    prediction.away === maxProb
   ) {
     return true;
   }
 
   if (
     actualWinner === WinnerType.draw &&
-    prediction.drawProbability === maxProb
+    prediction.draw === maxProb
   ) {
     return true;
   }
@@ -163,12 +163,12 @@ export async function processUpdateResultsJob(
           
           // Parse probabilities from JSON
           const probabilities = prediction.probabilities as any;
-          const homeWinProbability = probabilities?.homeWinProbability || 0;
-          const awayWinProbability = probabilities?.awayWinProbability || 0;
-          const drawProbability = probabilities?.drawProbability || 0;
+          const home = probabilities?.home || 0;
+          const away = probabilities?.away || 0;
+          const draw = probabilities?.draw || 0;
           
           const isAccurate = isPredictionAccurate(
-            { homeWinProbability, awayWinProbability, drawProbability },
+            { home, away, draw },
             winner
           );
 
@@ -177,9 +177,9 @@ export async function processUpdateResultsJob(
           if (isAccurate) {
             accuracyNote = `Correctly predicted ${winner} win`;
           } else {
-            const predictedWinner = homeWinProbability > awayWinProbability
-              ? (homeWinProbability > drawProbability ? 'home' : 'draw')
-              : (awayWinProbability > drawProbability ? 'away' : 'draw');
+            const predictedWinner = home > away
+              ? (home > draw ? 'home' : 'draw')
+              : (away > draw ? 'away' : 'draw');
             accuracyNote = `Predicted ${predictedWinner} win, but actual result was ${winner}`;
           }
 
