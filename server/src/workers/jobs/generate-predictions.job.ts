@@ -113,9 +113,7 @@ async function generateTeamSnapshot(teamId: string): Promise<TeamSnapshot> {
 async function generateAIPrediction(
   event: any,
   homeSnapshot: TeamSnapshot,
-  awaySnapshot: TeamSnapshot,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _headToHead: any
+  awaySnapshot: TeamSnapshot
 ): Promise<{
   homeWinProbability: number;
   awayWinProbability: number;
@@ -179,7 +177,7 @@ export async function processGeneratePredictionsJob(
     // Get events to generate predictions for
     const where: any = {
       status: 'upcoming',
-      scheduledAt: {
+      date: {
         gte: new Date(), // Only upcoming events
         lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Next 30 days
       },
@@ -231,28 +229,11 @@ export async function processGeneratePredictionsJob(
         const homeSnapshot = await generateTeamSnapshot(event.homeTeamId);
         const awaySnapshot = await generateTeamSnapshot(event.awayTeamId);
 
-        // Get head-to-head data
-        const headToHead = await prisma.headToHead.findFirst({
-          where: {
-            OR: [
-              {
-                team1Id: event.homeTeamId,
-                team2Id: event.awayTeamId,
-              },
-              {
-                team1Id: event.awayTeamId,
-                team2Id: event.homeTeamId,
-              },
-            ],
-          },
-        });
-
         // Generate AI prediction
         const prediction = await generateAIPrediction(
           event,
           homeSnapshot,
-          awaySnapshot,
-          headToHead
+          awaySnapshot
         );
 
         // Store prediction in database
