@@ -137,11 +137,15 @@ async function generateAIPrediction(
   const awayWinProbability = 32.3;
   const drawProbability = 22.2;
   
-  // Determine predicted winner
-  let predictedWinner: 'home' | 'away' | 'draw' = 'home';
-  if (awayWinProbability > homeWinProbability && awayWinProbability > drawProbability) {
+  // Determine predicted winner based on highest probability
+  const maxProb = Math.max(homeWinProbability, awayWinProbability, drawProbability);
+  let predictedWinner: 'home' | 'away' | 'draw';
+  
+  if (homeWinProbability === maxProb) {
+    predictedWinner = 'home';
+  } else if (awayWinProbability === maxProb) {
     predictedWinner = 'away';
-  } else if (drawProbability > homeWinProbability && drawProbability > awayWinProbability) {
+  } else {
     predictedWinner = 'draw';
   }
 

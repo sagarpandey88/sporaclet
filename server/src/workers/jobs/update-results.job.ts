@@ -177,9 +177,18 @@ export async function processUpdateResultsJob(
           if (isAccurate) {
             accuracyNote = `Correctly predicted ${winner} win`;
           } else {
-            const predictedWinner = home > away
-              ? (home > draw ? 'home' : 'draw')
-              : (away > draw ? 'away' : 'draw');
+            // Find the predicted winner based on highest probability
+            const maxProb = Math.max(home, away, draw);
+            let predictedWinner: string;
+            
+            if (home === maxProb) {
+              predictedWinner = 'home';
+            } else if (away === maxProb) {
+              predictedWinner = 'away';
+            } else {
+              predictedWinner = 'draw';
+            }
+            
             accuracyNote = `Predicted ${predictedWinner} win, but actual result was ${winner}`;
           }
 
