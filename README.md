@@ -76,6 +76,8 @@ cd ../server
 npm install
 ```
 
+**Note on Dependencies**: The client package.json includes an npm override for `eslint-plugin-react-hooks` to use version 5.x instead of the default 7.x. This avoids pulling in the `zod` validation library as a transitive dependency, which is not used by this application.
+
 ### Configuration
 
 Create `.env` files in both `client/` and `server/` directories:
