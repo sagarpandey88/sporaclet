@@ -6,10 +6,8 @@
  * prediction accuracy flags.
  * 
  * Schedule: Every hour
- * Retry: 3 attempts with exponential backoff
  */
 
-import { Job } from 'bullmq';
 import { PrismaClient, WinnerType } from '@prisma/client';
 import { logger } from '../../middleware/logger';
 
@@ -93,13 +91,12 @@ function isPredictionAccurate(
  * Process update-results job
  */
 export async function processUpdateResultsJob(
-  job: Job<UpdateResultsJobData>
+  data: UpdateResultsJobData = {}
 ): Promise<void> {
   const startTime = Date.now();
-  const { eventId } = job.data;
+  const { eventId } = data;
 
   logger.info('Starting update-results job', {
-    jobId: job.id,
     eventId,
   });
 
@@ -128,11 +125,7 @@ export async function processUpdateResultsJob(
       },
     });
 
-    await job.updateProgress(10);
-
-    logger.info(`Found ${events.length} events to check for results`, {
-      jobId: job.id,
-    });
+    logger.info(`Found ${events.length} events to check for results`);
 
     let updatedCount = 0;
     let accuracyUpdated = 0;
@@ -209,10 +202,6 @@ export async function processUpdateResultsJob(
           });
         }
 
-        // Update progress
-        const progress = Math.min(10 + (90 * (i + 1)) / events.length, 100);
-        await job.updateProgress(progress);
-
       } catch (error) {
         logger.error('Error updating result for event', {
           eventId: event.id,
@@ -225,7 +214,6 @@ export async function processUpdateResultsJob(
     const duration = Date.now() - startTime;
 
     logger.info('Update-results job completed successfully', {
-      jobId: job.id,
       duration: `${duration}ms`,
       totalProcessed: events.length,
       eventsUpdated: updatedCount,
@@ -236,34 +224,11 @@ export async function processUpdateResultsJob(
     const duration = Date.now() - startTime;
 
     logger.error('Update-results job failed', {
-      jobId: job.id,
       duration: `${duration}ms`,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    throw error; // Re-throw to trigger retry
+    throw error;
   }
 }
-
-/**
- * Job configuration
- */
-export const updateResultsJobConfig = {
-  name: 'update-results',
-  processor: processUpdateResultsJob,
-  options: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential' as const,
-      delay: 5000, // Start with 5 seconds
-    },
-    removeOnComplete: {
-      age: 7 * 24 * 60 * 60, // Keep completed jobs for 7 days
-      count: 100, // Keep last 100 completed jobs
-    },
-    removeOnFail: {
-      age: 30 * 24 * 60 * 60, // Keep failed jobs for 30 days
-    },
-  },
-};

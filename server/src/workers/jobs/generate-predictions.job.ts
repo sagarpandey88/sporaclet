@@ -5,10 +5,8 @@
  * using OpenAI GPT-4 or similar ML model.
  * 
  * Schedule: Twice daily (6:00 AM and 6:00 PM)
- * Retry: 3 attempts with exponential backoff
  */
 
-import { Job } from 'bullmq';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../../middleware/logger';
 
@@ -24,9 +22,9 @@ interface TeamSnapshot {
   teamName: string;
   players: Array<{
     id: string;
-    name: string;
+    displayName: string;
     position: string;
-    jerseyNumber: string;
+    jerseyNumber: number | null;
   }>;
   recentForm: {
     wins: number;
@@ -48,34 +46,40 @@ interface TeamSnapshot {
 async function generateTeamSnapshot(teamId: string): Promise<TeamSnapshot> {
   const team = await prisma.team.findUnique({
     where: { id: teamId },
-    include: {
-      players: {
-        select: {
-          id: true,
-          name: true,
-          position: true,
-          jerseyNumber: true,
-        },
-      },
-      injuries: {
-        where: {
-          status: 'active',
-        },
-        include: {
-          player: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      },
-    },
   });
 
   if (!team) {
     throw new Error(`Team not found: ${teamId}`);
   }
+
+  // Fetch players for this team
+  const players = await prisma.player.findMany({
+    where: { teamId: teamId },
+    select: {
+      id: true,
+      displayName: true,
+      position: true,
+      jerseyNumber: true,
+    },
+  });
+
+  // Fetch active injuries for this team's players
+  const injuries = await prisma.injury.findMany({
+    where: {
+      player: {
+        teamId: teamId,
+      },
+      status: 'active',
+    },
+    include: {
+      player: {
+        select: {
+          id: true,
+          displayName: true,
+        },
+      },
+    },
+  });
 
   // TODO: Calculate recent form from head-to-head or event results
   const recentForm = {
@@ -87,14 +91,14 @@ async function generateTeamSnapshot(teamId: string): Promise<TeamSnapshot> {
   return {
     teamId: team.id,
     teamName: team.name,
-    players: team.players,
+    players: players,
     recentForm,
-    injuries: team.injuries.map((injury) => ({
+    injuries: injuries.map((injury) => ({
       playerId: injury.player.id,
-      playerName: injury.player.name,
+      playerName: injury.player.displayName,
       injuryType: injury.injuryType,
       severity: injury.severity,
-      expectedReturn: injury.expectedReturn?.toISOString() || null,
+      expectedReturn: injury.expectedReturnDate?.toISOString() || null,
     })),
   };
 }
@@ -110,13 +114,15 @@ async function generateAIPrediction(
   event: any,
   homeSnapshot: TeamSnapshot,
   awaySnapshot: TeamSnapshot,
-  headToHead: any
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _headToHead: any
 ): Promise<{
   homeWinProbability: number;
   awayWinProbability: number;
   drawProbability: number;
+  predictedWinner: 'home' | 'away' | 'draw';
+  confidence: 'low' | 'medium' | 'high';
   keyFactors: string[];
-  confidence: number;
 }> {
   // TODO: Implement actual AI model call
   // Example: OpenAI GPT-4, custom ML model, etc.
@@ -129,16 +135,29 @@ async function generateAIPrediction(
 
   // Placeholder: Return mock prediction
   // In production, this would call an AI/ML service
+  const homeWinProbability = 45.5;
+  const awayWinProbability = 32.3;
+  const drawProbability = 22.2;
+  
+  // Determine predicted winner
+  let predictedWinner: 'home' | 'away' | 'draw' = 'home';
+  if (awayWinProbability > homeWinProbability && awayWinProbability > drawProbability) {
+    predictedWinner = 'away';
+  } else if (drawProbability > homeWinProbability && drawProbability > awayWinProbability) {
+    predictedWinner = 'draw';
+  }
+
   return {
-    homeWinProbability: 45.5,
-    awayWinProbability: 32.3,
-    drawProbability: 22.2,
+    homeWinProbability,
+    awayWinProbability,
+    drawProbability,
+    predictedWinner,
+    confidence: 'medium',
     keyFactors: [
       'Home team has won 3 of last 5 matches',
       'Away team has 2 key players injured',
       'Historical head-to-head favors home team',
     ],
-    confidence: 0.75,
   };
 }
 
@@ -146,13 +165,12 @@ async function generateAIPrediction(
  * Process generate-predictions job
  */
 export async function processGeneratePredictionsJob(
-  job: Job<GeneratePredictionsJobData>
+  data: GeneratePredictionsJobData = {}
 ): Promise<void> {
   const startTime = Date.now();
-  const { eventId, forceRegenerate } = job.data;
+  const { eventId, forceRegenerate } = data;
 
   logger.info('Starting generate-predictions job', {
-    jobId: job.id,
     eventId,
     forceRegenerate,
   });
@@ -184,11 +202,7 @@ export async function processGeneratePredictionsJob(
       },
     });
 
-    await job.updateProgress(10);
-
-    logger.info(`Found ${events.length} events to process`, {
-      jobId: job.id,
-    });
+    logger.info(`Found ${events.length} events to process`);
 
     let generatedCount = 0;
     let skippedCount = 0;
@@ -245,21 +259,19 @@ export async function processGeneratePredictionsJob(
         await prisma.prediction.create({
           data: {
             eventId: event.id,
-            homeWinProbability: prediction.homeWinProbability,
-            awayWinProbability: prediction.awayWinProbability,
-            drawProbability: prediction.drawProbability,
+            probabilities: {
+              home: prediction.homeWinProbability,
+              away: prediction.awayWinProbability,
+              draw: prediction.drawProbability,
+            },
+            predictedWinner: prediction.predictedWinner,
             confidence: prediction.confidence,
             keyFactors: prediction.keyFactors,
-            homeTeamSnapshot: homeSnapshot as any,
-            awayTeamSnapshot: awaySnapshot as any,
+            modelVersion: 'v1.0.0',
           },
         });
 
         generatedCount++;
-
-        // Update progress
-        const progress = Math.min(10 + (90 * (i + 1)) / events.length, 100);
-        await job.updateProgress(progress);
 
       } catch (error) {
         logger.error('Error generating prediction for event', {
@@ -273,7 +285,6 @@ export async function processGeneratePredictionsJob(
     const duration = Date.now() - startTime;
 
     logger.info('Generate-predictions job completed successfully', {
-      jobId: job.id,
       duration: `${duration}ms`,
       totalProcessed: events.length,
       generated: generatedCount,
@@ -284,34 +295,11 @@ export async function processGeneratePredictionsJob(
     const duration = Date.now() - startTime;
 
     logger.error('Generate-predictions job failed', {
-      jobId: job.id,
       duration: `${duration}ms`,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    throw error; // Re-throw to trigger retry
+    throw error;
   }
 }
-
-/**
- * Job configuration
- */
-export const generatePredictionsJobConfig = {
-  name: 'generate-predictions',
-  processor: processGeneratePredictionsJob,
-  options: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential' as const,
-      delay: 10000, // Start with 10 seconds
-    },
-    removeOnComplete: {
-      age: 7 * 24 * 60 * 60, // Keep completed jobs for 7 days
-      count: 100, // Keep last 100 completed jobs
-    },
-    removeOnFail: {
-      age: 30 * 24 * 60 * 60, // Keep failed jobs for 30 days
-    },
-  },
-};

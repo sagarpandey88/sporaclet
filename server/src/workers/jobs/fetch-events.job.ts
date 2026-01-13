@@ -5,10 +5,8 @@
  * and stores them in the database.
  * 
  * Schedule: Daily at 2:00 AM
- * Retry: 3 attempts with exponential backoff
  */
 
-import { Job } from 'bullmq';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../../middleware/logger';
 
@@ -50,28 +48,21 @@ async function fetchEventsFromAPI(
 /**
  * Process fetch-events job
  */
-export async function processFetchEventsJob(job: Job<FetchEventsJobData>): Promise<void> {
+export async function processFetchEventsJob(data: FetchEventsJobData = {}): Promise<void> {
   const startTime = Date.now();
-  const { sportSlug, dateFrom, dateTo } = job.data;
+  const { sportSlug, dateFrom, dateTo } = data;
 
   logger.info('Starting fetch-events job', {
-    jobId: job.id,
     sportSlug,
     dateFrom,
     dateTo,
   });
 
   try {
-    // Update job progress
-    await job.updateProgress(10);
-
     // Fetch events from external API
     const events = await fetchEventsFromAPI(sportSlug, dateFrom, dateTo);
-    await job.updateProgress(50);
 
-    logger.info(`Fetched ${events.length} events from API`, {
-      jobId: job.id,
-    });
+    logger.info(`Fetched ${events.length} events from API`);
 
     // Store events in database
     let createdCount = 0;
@@ -91,8 +82,8 @@ export async function processFetchEventsJob(job: Job<FetchEventsJobData>): Promi
           await prisma.event.update({
             where: { id: existing.id },
             data: {
-              name: eventData.name,
-              scheduledAt: new Date(eventData.scheduledAt),
+              eventName: eventData.name,
+              date: new Date(eventData.scheduledAt),
               venue: eventData.venue,
               status: eventData.status,
               // Update other fields as needed
@@ -104,8 +95,8 @@ export async function processFetchEventsJob(job: Job<FetchEventsJobData>): Promi
           await prisma.event.create({
             data: {
               externalId: eventData.externalId,
-              name: eventData.name,
-              scheduledAt: new Date(eventData.scheduledAt),
+              eventName: eventData.name,
+              date: new Date(eventData.scheduledAt),
               venue: eventData.venue,
               status: eventData.status || 'upcoming',
               sportId: eventData.sportId,
@@ -126,12 +117,9 @@ export async function processFetchEventsJob(job: Job<FetchEventsJobData>): Promi
       }
     }
 
-    await job.updateProgress(100);
-
     const duration = Date.now() - startTime;
 
     logger.info('Fetch-events job completed successfully', {
-      jobId: job.id,
       duration: `${duration}ms`,
       totalFetched: events.length,
       created: createdCount,
@@ -142,34 +130,11 @@ export async function processFetchEventsJob(job: Job<FetchEventsJobData>): Promi
     const duration = Date.now() - startTime;
     
     logger.error('Fetch-events job failed', {
-      jobId: job.id,
       duration: `${duration}ms`,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    throw error; // Re-throw to trigger retry
+    throw error;
   }
 }
-
-/**
- * Job configuration
- */
-export const fetchEventsJobConfig = {
-  name: 'fetch-events',
-  processor: processFetchEventsJob,
-  options: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential' as const,
-      delay: 5000, // Start with 5 seconds
-    },
-    removeOnComplete: {
-      age: 7 * 24 * 60 * 60, // Keep completed jobs for 7 days
-      count: 100, // Keep last 100 completed jobs
-    },
-    removeOnFail: {
-      age: 30 * 24 * 60 * 60, // Keep failed jobs for 30 days
-    },
-  },
-};
