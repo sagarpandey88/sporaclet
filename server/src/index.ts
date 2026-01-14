@@ -1,6 +1,10 @@
+import dotenv from 'dotenv';
+
+// Load environment variables FIRST
+dotenv.config();
+
 import express, { Application } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { logger, morganMiddleware, requestIdMiddleware } from './middleware/logger';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
@@ -10,9 +14,6 @@ import { swaggerSpec } from './config/swagger';
 import healthRoutes from './routes/health.routes';
 import eventsRoutes from './routes/events.routes';
 import searchRoutes from './routes/search.routes';
-
-// Load environment variables
-dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 3001;
