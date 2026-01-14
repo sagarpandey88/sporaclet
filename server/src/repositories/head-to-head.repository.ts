@@ -1,4 +1,4 @@
-import dataStore from '../lib/data-store';
+import db from '../lib/db';
 import { HeadToHead } from '../types/models';
 
 /**
@@ -10,15 +10,14 @@ class HeadToHeadRepository {
    * Find head-to-head record by team IDs
    */
   async findByTeams(team1Id: string, team2Id: string): Promise<HeadToHead | null> {
-    // Try both combinations since order matters
-    const h2h = await dataStore.headToHead.findFirst({
-      where: {
-        team1Id,
-        team2Id,
-      },
-    });
-
-    return h2h;
+    const result = await db.query<HeadToHead>(
+      `SELECT * FROM head_to_head 
+       WHERE ("team1Id" = $1 AND "team2Id" = $2) 
+          OR ("team1Id" = $2 AND "team2Id" = $1)
+       LIMIT 1`,
+      [team1Id, team2Id]
+    );
+    return result.rows[0] || null;
   }
 
   /**
@@ -35,8 +34,8 @@ class HeadToHeadRepository {
     averageGoalsTeam1?: number;
     averageGoalsTeam2?: number;
   }): Promise<HeadToHead> {
-    // Not implemented in simple in-memory store
-    throw new Error('Create operation not supported in simplified data store');
+    // Not implemented - simplified
+    throw new Error('Create operation not supported in simplified implementation');
   }
 
   /**
@@ -54,8 +53,8 @@ class HeadToHeadRepository {
       averageGoalsTeam2?: number;
     }
   ): Promise<HeadToHead> {
-    // Not implemented in simple in-memory store
-    throw new Error('Update operation not supported in simplified data store');
+    // Not implemented - simplified
+    throw new Error('Update operation not supported in simplified implementation');
   }
 
   /**
@@ -72,8 +71,8 @@ class HeadToHeadRepository {
     averageGoalsTeam1: number;
     averageGoalsTeam2: number;
   }): Promise<HeadToHead> {
-    // Not implemented in simple in-memory store
-    throw new Error('Upsert operation not supported in simplified data store');
+    // Not implemented - simplified
+    throw new Error('Upsert operation not supported in simplified implementation');
   }
 }
 

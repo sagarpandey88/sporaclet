@@ -1,59 +1,69 @@
 import { Player } from '../types/models';
-import dataStore from '../lib/data-store';
+import db from '../lib/db';
 
 export class PlayerRepository {
   /**
    * Find player by ID
    */
   async findById(id: string): Promise<Player | null> {
-    // Simplified: no includes in in-memory store
-    const players = await dataStore.player.findMany({});
-    return players.find((p) => p.id === id) || null;
+    const result = await db.query<Player>(
+      `SELECT * FROM players WHERE id = $1`,
+      [id]
+    );
+    return result.rows[0] || null;
   }
 
   /**
    * Find players by team
    */
   async findByTeam(teamId: string): Promise<Player[]> {
-    return await dataStore.player.findMany({
-      where: { teamId },
-      orderBy: { displayName: 'asc' },
-    });
+    const result = await db.query<Player>(
+      `SELECT * FROM players 
+       WHERE "teamId" = $1 
+       ORDER BY "displayName" ASC`,
+      [teamId]
+    );
+    return result.rows;
   }
 
   /**
    * Find player by external ID
    */
   async findByExternalId(externalId: string): Promise<Player | null> {
-    const players = await dataStore.player.findMany({});
-    return players.find((p) => p.externalId === externalId) || null;
+    const result = await db.query<Player>(
+      `SELECT * FROM players WHERE "externalId" = $1`,
+      [externalId]
+    );
+    return result.rows[0] || null;
   }
 
   /**
    * Create new player
    */
   async create(_data: Partial<Player>): Promise<Player> {
-    // Not implemented in simple in-memory store
-    throw new Error('Create operation not supported in simplified data store');
+    // Not implemented - simplified
+    throw new Error('Create operation not supported in simplified implementation');
   }
 
   /**
    * Update player
    */
   async update(_id: string, _data: Partial<Player>): Promise<Player> {
-    // Not implemented in simple in-memory store
-    throw new Error('Update operation not supported in simplified data store');
+    // Not implemented - simplified
+    throw new Error('Update operation not supported in simplified implementation');
   }
 
   /**
    * Find active players by sport
    */
   async findActiveBySport(sportId: string): Promise<Player[]> {
-    const players = await dataStore.player.findMany({
-      where: { sportId },
-      orderBy: { displayName: 'asc' },
-    });
-    return players.filter((p) => p.isActive);
+    const result = await db.query<Player>(
+      `SELECT * FROM players 
+       WHERE "sportId" = $1 AND "isActive" = true
+       ORDER BY "displayName" ASC`,
+      [sportId]
+    );
+    return result.rows;
   }
 }
 

@@ -6,10 +6,10 @@
  * 
  * Schedule: Every hour
  * 
- * Note: Simplified implementation for in-memory data store.
+ * Note: Simplified implementation.
  */
 
-import dataStore from '../../lib/data-store';
+import db from '../../lib/db';
 import { logger } from '../../middleware/logger';
 
 interface UpdateResultsJobData {
@@ -32,11 +32,11 @@ export async function executeUpdateResultsJob(
     // 3. Update event records with scores and winners
     // 4. Update prediction accuracy
     
-    // For simplified in-memory store, just log success
-    const events = await dataStore.event.findMany({
-      where: { status: "live" as any },
-    });
-    logger.info(`Found ${events.length} live events to check`);
+    // For now, just verify database connectivity
+    const result = await db.query(
+      `SELECT COUNT(*) FROM events WHERE status = 'live'`
+    );
+    logger.info(`Found ${result.rows[0].count} live events to check`);
     
     logger.info('Update Results Job completed successfully');
   } catch (error) {

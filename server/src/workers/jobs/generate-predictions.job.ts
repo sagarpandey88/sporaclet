@@ -5,10 +5,10 @@
  * 
  * Schedule: Twice daily at 6:00 AM and 6:00 PM
  * 
- * Note: Simplified implementation for in-memory data store.
+ * Note: Simplified implementation.
  */
 
-import dataStore from '../../lib/data-store';
+import db from '../../lib/db';
 import { logger } from '../../middleware/logger';
 
 interface GeneratePredictionsJobData {
@@ -31,11 +31,11 @@ export async function executeGeneratePredictionsJob(
     // 3. Call AI model to generate predictions
     // 4. Store predictions in database
     
-    // For simplified in-memory store, just log success
-    const events = await dataStore.event.findMany({
-      where: { status: "upcoming" as any },
-    });
-    logger.info(`Found ${events.length} upcoming events`);
+    // For now, just verify database connectivity
+    const result = await db.query(
+      `SELECT COUNT(*) FROM events WHERE status = 'upcoming'`
+    );
+    logger.info(`Found ${result.rows[0].count} upcoming events`);
     
     logger.info('Generate Predictions Job completed successfully');
   } catch (error) {

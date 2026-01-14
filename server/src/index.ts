@@ -81,10 +81,10 @@ const gracefulShutdown = async (): Promise<void> => {
     logger.info('✅ HTTP server closed');
     
     try {
-      // Close data store connection
-      const dataStore = await import('./lib/data-store');
-      await dataStore.default.$disconnect();
-      logger.info('✅ Data store connection closed');
+      // Close database connection
+      const db = await import('./lib/db');
+      await db.default.disconnect();
+      logger.info('✅ Database connection closed');
       
       // Close cache connection
       const cacheService = await import('./services/cache.service');

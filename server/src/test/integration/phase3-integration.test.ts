@@ -4,17 +4,17 @@
  */
 
 import request from 'supertest';
-import dataStore from '../../lib/data-store';
+import db from '../../lib/db';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3001';
 
 describe('Phase 3: Browse Upcoming Events - Integration Tests', () => {
   beforeAll(async () => {
-    // Data store is automatically initialized with sample data
+    // Database connection is handled automatically by the pool
   });
 
   afterAll(async () => {
-    await dataStore.$disconnect();
+    await db.disconnect();
   });
 
   /**

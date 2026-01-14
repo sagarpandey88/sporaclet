@@ -6,11 +6,11 @@
  * 
  * Schedule: Daily at 2:00 AM
  * 
- * Note: Simplified implementation for in-memory data store.
- * In production with a real database, this would fetch from external APIs.
+ * Note: Simplified implementation.
+ * In production with external APIs, this would fetch and store event data.
  */
 
-import dataStore from '../../lib/data-store';
+import db from '../../lib/db';
 import { logger } from '../../middleware/logger';
 
 interface FetchEventsJobData {
@@ -32,9 +32,9 @@ export async function executeFetchEventsJob(data: FetchEventsJobData = {}): Prom
     // 2. Transform the data
     // 3. Store in database
     
-    // For simplified in-memory store, just log success
-    const sports = await dataStore.sport.findMany();
-    logger.info(`Found ${sports.length} sports in data store`);
+    // For now, just verify database connectivity
+    const result = await db.query('SELECT COUNT(*) FROM sports');
+    logger.info(`Found ${result.rows[0].count} sports in database`);
     
     logger.info('Fetch Events Job completed successfully');
   } catch (error) {

@@ -1,58 +1,69 @@
 import { Injury } from '../types/models';
-import dataStore from '../lib/data-store';
+import db from '../lib/db';
 
 export class InjuryRepository {
   /**
    * Find active injuries by team
    */
   async findActiveByTeam(_teamId: string): Promise<Injury[]> {
-    // Simplified: no complex joins in in-memory store
-    const injuries = await dataStore.injury.findMany({
-      where: { status: 'active' },
-    });
-    return injuries;
+    // Simplified: returns all active injuries
+    const result = await db.query<Injury>(
+      `SELECT * FROM injuries WHERE status = 'active' ORDER BY "occurredDate" DESC`
+    );
+    return result.rows;
   }
 
   /**
    * Find injury by ID
    */
   async findById(id: string): Promise<Injury | null> {
-    const injuries = await dataStore.injury.findMany({});
-    return injuries.find((i) => i.id === id) || null;
+    const result = await db.query<Injury>(
+      `SELECT * FROM injuries WHERE id = $1`,
+      [id]
+    );
+    return result.rows[0] || null;
   }
 
   /**
    * Find injuries by player
    */
   async findByPlayer(playerId: string): Promise<Injury[]> {
-    return await dataStore.injury.findMany({
-      where: { playerId },
-    });
+    const result = await db.query<Injury>(
+      `SELECT * FROM injuries 
+       WHERE "playerId" = $1 
+       ORDER BY "occurredDate" DESC`,
+      [playerId]
+    );
+    return result.rows;
   }
 
   /**
    * Create new injury
    */
   async create(_data: Partial<Injury>): Promise<Injury> {
-    // Not implemented in simple in-memory store
-    throw new Error('Create operation not supported in simplified data store');
+    // Not implemented - simplified
+    throw new Error('Create operation not supported in simplified implementation');
   }
 
   /**
    * Update injury
    */
   async update(_id: string, _data: Partial<Injury>): Promise<Injury> {
-    // Not implemented in simple in-memory store
-    throw new Error('Update operation not supported in simplified data store');
+    // Not implemented - simplified
+    throw new Error('Update operation not supported in simplified implementation');
   }
 
   /**
    * Find injuries by status
    */
   async findByStatus(status: 'active' | 'recovered' | 'day_to_day'): Promise<Injury[]> {
-    return await dataStore.injury.findMany({
-      where: { status },
-    });
+    const result = await db.query<Injury>(
+      `SELECT * FROM injuries 
+       WHERE status = $1 
+       ORDER BY "occurredDate" DESC`,
+      [status]
+    );
+    return result.rows;
   }
 }
 

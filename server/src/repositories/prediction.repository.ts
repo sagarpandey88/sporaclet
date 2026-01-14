@@ -1,4 +1,4 @@
-import dataStore from '../lib/data-store';
+import db from '../lib/db';
 import { Prediction, WinnerType, ConfidenceLevel } from '../types/models';
 
 /**
@@ -10,14 +10,14 @@ class PredictionRepository {
    * Find latest prediction for an event
    */
   async findLatestByEvent(eventId: string): Promise<Prediction | null> {
-    return dataStore.prediction.findFirst({
-      where: {
-        eventId,
-      },
-      orderBy: {
-        generatedAt: 'desc',
-      },
-    });
+    const result = await db.query<Prediction>(
+      `SELECT * FROM predictions 
+       WHERE "eventId" = $1 
+       ORDER BY "generatedAt" DESC 
+       LIMIT 1`,
+      [eventId]
+    );
+    return result.rows[0] || null;
   }
 
   /**
@@ -31,16 +31,22 @@ class PredictionRepository {
     keyFactors: string[];
     modelVersion: string;
   }): Promise<Prediction> {
-    return dataStore.prediction.create({
-      data: {
-        eventId: data.eventId,
-        probabilities: data.probabilities,
-        predictedWinner: data.predictedWinner,
-        confidence: data.confidence,
-        keyFactors: data.keyFactors,
-        modelVersion: data.modelVersion,
-      },
-    });
+    const result = await db.query<Prediction>(
+      `INSERT INTO predictions (
+        "eventId", probabilities, "predictedWinner", confidence, 
+        "keyFactors", "modelVersion"
+      ) VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *`,
+      [
+        data.eventId,
+        JSON.stringify(data.probabilities),
+        data.predictedWinner,
+        data.confidence,
+        JSON.stringify(data.keyFactors),
+        data.modelVersion,
+      ]
+    );
+    return result.rows[0];
   }
 
   /**
@@ -51,13 +57,14 @@ class PredictionRepository {
     isAccurate: boolean,
     accuracyNote?: string
   ): Promise<Prediction> {
-    return dataStore.prediction.update({
-      where: { id },
-      data: {
-        isAccurate,
-        accuracyNote,
-      },
-    });
+    const result = await db.query<Prediction>(
+      `UPDATE predictions 
+       SET "isAccurate" = $1, "accuracyNote" = $2, "updatedAt" = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [isAccurate, accuracyNote || null, id]
+    );
+    return result.rows[0];
   }
 
   /**
@@ -69,14 +76,26 @@ class PredictionRepository {
     inaccurate: number;
     pending: number;
   }> {
-    const [total, accurate, inaccurate, pending] = await Promise.all([
-      dataStore.prediction.count(),
-      dataStore.prediction.count({ where: { isAccurate: true } }),
-      dataStore.prediction.count({ where: { isAccurate: false } }),
-      dataStore.prediction.count({ where: { isAccurate: null } }),
-    ]);
+    const result = await db.query<{
+      total: string;
+      accurate: string;
+      inaccurate: string;
+      pending: string;
+    }>(`
+      SELECT 
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE "isAccurate" = true)::int AS accurate,
+        COUNT(*) FILTER (WHERE "isAccurate" = false)::int AS inaccurate,
+        COUNT(*) FILTER (WHERE "isAccurate" IS NULL)::int AS pending
+      FROM predictions
+    `);
 
-    return { total, accurate, inaccurate, pending };
+    return {
+      total: parseInt(result.rows[0].total),
+      accurate: parseInt(result.rows[0].accurate),
+      inaccurate: parseInt(result.rows[0].inaccurate),
+      pending: parseInt(result.rows[0].pending),
+    };
   }
 }
 
