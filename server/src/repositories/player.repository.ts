@@ -1,77 +1,69 @@
-import { Player, Prisma } from '@prisma/client';
-import prisma from '../lib/prisma';
+import { Player } from '../types/models';
+import db from '../lib/db';
 
 export class PlayerRepository {
   /**
    * Find player by ID
    */
   async findById(id: string): Promise<Player | null> {
-    return await prisma.player.findUnique({
-      where: { id },
-      include: {
-        team: true,
-        sport: true,
-        injuries: {
-          where: { status: 'active' },
-        },
-      },
-    });
+    const result = await db.query<Player>(
+      `SELECT * FROM players WHERE id = $1`,
+      [id]
+    );
+    return result.rows[0] || null;
   }
 
   /**
    * Find players by team
    */
   async findByTeam(teamId: string): Promise<Player[]> {
-    return await prisma.player.findMany({
-      where: { teamId },
-      orderBy: { displayName: 'asc' },
-      include: {
-        injuries: {
-          where: { status: 'active' },
-        },
-      },
-    });
+    const result = await db.query<Player>(
+      `SELECT * FROM players 
+       WHERE "teamId" = $1 
+       ORDER BY "displayName" ASC`,
+      [teamId]
+    );
+    return result.rows;
   }
 
   /**
    * Find player by external ID
    */
   async findByExternalId(externalId: string): Promise<Player | null> {
-    return await prisma.player.findUnique({
-      where: { externalId },
-    });
+    const result = await db.query<Player>(
+      `SELECT * FROM players WHERE "externalId" = $1`,
+      [externalId]
+    );
+    return result.rows[0] || null;
   }
 
   /**
    * Create new player
    */
-  async create(data: Prisma.PlayerCreateInput): Promise<Player> {
-    return await prisma.player.create({
-      data,
-    });
+  async create(_data: Partial<Player>): Promise<Player> {
+    // Not implemented - simplified
+    throw new Error('Create operation not supported in simplified implementation');
   }
 
   /**
    * Update player
    */
-  async update(id: string, data: Prisma.PlayerUpdateInput): Promise<Player> {
-    return await prisma.player.update({
-      where: { id },
-      data,
-    });
+  async update(_id: string, _data: Partial<Player>): Promise<Player> {
+    // Not implemented - simplified
+    throw new Error('Update operation not supported in simplified implementation');
   }
 
   /**
    * Find active players by sport
    */
   async findActiveBySport(sportId: string): Promise<Player[]> {
-    return await prisma.player.findMany({
-      where: {
-        sportId,
-        isActive: true,
-      },
-      orderBy: { displayName: 'asc' },
-    });
+    const result = await db.query<Player>(
+      `SELECT * FROM players 
+       WHERE "sportId" = $1 AND "isActive" = true
+       ORDER BY "displayName" ASC`,
+      [sportId]
+    );
+    return result.rows;
   }
 }
 

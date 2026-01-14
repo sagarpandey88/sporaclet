@@ -1,6 +1,6 @@
 import eventRepository from '../repositories/event.repository';
 import cacheService from './cache.service';
-import { EventStatus } from '@prisma/client';
+import { EventStatus } from '../types/models';
 
 /**
  * Search Service
@@ -177,7 +177,7 @@ class SearchService {
       teams: event.homeTeam && event.awayTeam
         ? `${event.homeTeam.shortName} vs ${event.awayTeam.shortName}`
         : `${event.participant1Name} vs ${event.participant2Name}`,
-      status: event.status,
+      status: event.status as EventStatus,
     }));
 
     const result = { suggestions };

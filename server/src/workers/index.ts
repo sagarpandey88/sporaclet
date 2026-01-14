@@ -1,8 +1,8 @@
 import * as cron from 'node-cron';
 import dotenv from 'dotenv';
-import { processFetchEventsJob } from './jobs/fetch-events.job';
-import { processGeneratePredictionsJob } from './jobs/generate-predictions.job';
-import { processUpdateResultsJob } from './jobs/update-results.job';
+import executeFetchEventsJob from './jobs/fetch-events.job';
+import executeGeneratePredictionsJob from './jobs/generate-predictions.job';
+import executeUpdateResultsJob from './jobs/update-results.job';
 import { logger } from '../middleware/logger';
 
 // Load environment variables
@@ -39,7 +39,7 @@ function setupCronJobs(): void {
     // Fetch events: Daily at 2:00 AM
     const fetchEventsSchedule = process.env.WORKER_FETCH_EVENTS_SCHEDULE || '0 2 * * *';
     const fetchEventsJob = cron.schedule(fetchEventsSchedule, () => {
-      void runJobWithErrorHandling('fetch-events', () => processFetchEventsJob());
+      void runJobWithErrorHandling('fetch-events', () => executeFetchEventsJob());
     });
     cronJobs.push(fetchEventsJob);
     logger.info(`Scheduled cron job: fetch-events (${fetchEventsSchedule})`);
@@ -49,7 +49,7 @@ function setupCronJobs(): void {
     // Generate predictions: Twice daily at 6:00 AM and 6:00 PM
     const generatePredictionsSchedule = process.env.WORKER_GENERATE_PREDICTIONS_SCHEDULE || '0 6,18 * * *';
     const generatePredictionsJob = cron.schedule(generatePredictionsSchedule, () => {
-      void runJobWithErrorHandling('generate-predictions', () => processGeneratePredictionsJob());
+      void runJobWithErrorHandling('generate-predictions', () => executeGeneratePredictionsJob());
     });
     cronJobs.push(generatePredictionsJob);
     logger.info(`Scheduled cron job: generate-predictions (${generatePredictionsSchedule})`);
@@ -59,7 +59,7 @@ function setupCronJobs(): void {
     // Update results: Every hour
     const updateResultsSchedule = process.env.WORKER_UPDATE_RESULTS_SCHEDULE || '0 * * * *';
     const updateResultsJob = cron.schedule(updateResultsSchedule, () => {
-      void runJobWithErrorHandling('update-results', () => processUpdateResultsJob());
+      void runJobWithErrorHandling('update-results', () => executeUpdateResultsJob());
     });
     cronJobs.push(updateResultsJob);
     logger.info(`Scheduled cron job: update-results (${updateResultsSchedule})`);

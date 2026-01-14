@@ -4,13 +4,13 @@ AI-Assisted Sport Prediction Portal
 
 ## Overview
 
-Sporaclet is a web-based sport prediction platform that leverages artificial intelligence to provide insights and predictions for various sporting events. The application features a modern Next.js frontend with server-side rendering (SSR) and a robust Express.js backend powered by PostgreSQL database.
+Sporaclet is a web-based sport prediction platform that leverages artificial intelligence to provide insights and predictions for various sporting events. The application features a modern Next.js frontend with server-side rendering (SSR) and a robust Express.js backend with PostgreSQL database.
 
 ## Architecture
 
 - **Frontend**: Next.js 14+ with App Router, TypeScript, Server-Side Rendering
 - **Backend**: Express.js with TypeScript, RESTful API design
-- **Database**: PostgreSQL 14+ with Prisma/TypeORM
+- **Database**: PostgreSQL 14+ with raw SQL queries (no ORM)
 - **Structure**: Monorepo with `client/` and `server/` directories
 
 ## Project Structure
@@ -87,9 +87,22 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 **server/.env:**
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/sporaclet
+DATABASE_URL=postgresql://username:password@localhost:5432/sporaclet
 PORT=3001
-JWT_SECRET=your-secret-key
+# Redis cache (optional)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
+
+### Database Setup
+
+```bash
+# Create PostgreSQL database
+createdb sporaclet
+
+# Run migrations
+cd server
+npm run migrate
 ```
 
 ### Running the Application

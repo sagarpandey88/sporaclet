@@ -1,5 +1,5 @@
-import prisma from '../lib/prisma';
-import { Event, Prediction, EventStatus, Prisma } from '@prisma/client';
+import db from '../lib/db';
+import { Event, Prediction, EventStatus } from '../types/models';
 
 /**
  * Event with relations type
@@ -31,6 +31,171 @@ type EventWithRelations = Event & {
  */
 class EventRepository {
   /**
+   * Build WHERE clause for event filters
+   */
+  private buildWhereClause(filters: {
+    sport?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    league?: string;
+    status?: EventStatus;
+    isDeleted?: boolean;
+    query?: string;
+  }): { where: string; params: any[] } {
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramCount = 1;
+
+    if (filters.status) {
+      conditions.push(`e.status = $${paramCount++}`);
+      params.push(filters.status);
+    }
+
+    if (filters.isDeleted !== undefined) {
+      conditions.push(`e."isDeleted" = $${paramCount++}`);
+      params.push(filters.isDeleted);
+    }
+
+    if (filters.dateFrom) {
+      conditions.push(`e.date >= $${paramCount++}`);
+      params.push(filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      conditions.push(`e.date <= $${paramCount++}`);
+      params.push(filters.dateTo);
+    }
+
+    if (filters.sport) {
+      conditions.push(`s.name = $${paramCount++}`);
+      params.push(filters.sport);
+    }
+
+    if (filters.league) {
+      conditions.push(`e.league ILIKE $${paramCount++}`);
+      params.push(`%${filters.league}%`);
+    }
+
+    if (filters.query) {
+      const searchPattern = `%${filters.query}%`;
+      conditions.push(`(
+        e."eventName" ILIKE $${paramCount} OR
+        ht.name ILIKE $${paramCount} OR
+        at.name ILIKE $${paramCount} OR
+        e."participant1Name" ILIKE $${paramCount} OR
+        e."participant2Name" ILIKE $${paramCount} OR
+        e.venue ILIKE $${paramCount} OR
+        e.league ILIKE $${paramCount}
+      )`);
+      params.push(searchPattern);
+      paramCount++;
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    return { where, params };
+  }
+
+  /**
+   * Fetch events with relations
+   */
+  private async fetchEventsWithRelations(
+    whereClause: string,
+    params: any[],
+    orderBy: string,
+    limit?: number,
+    offset?: number
+  ): Promise<EventWithRelations[]> {
+    const limitClause = limit ? `LIMIT $${params.length + 1}` : '';
+    const offsetClause = offset !== undefined ? `OFFSET $${params.length + (limit ? 2 : 1)}` : '';
+    
+    if (limit) params.push(limit);
+    if (offset !== undefined) params.push(offset);
+
+    const query = `
+      SELECT 
+        e.*,
+        s.id as "sport_id", s.name as "sport_name", s."displayName" as "sport_displayName",
+        ht.id as "homeTeam_id", ht.name as "homeTeam_name", ht."shortName" as "homeTeam_shortName", ht."logoUrl" as "homeTeam_logoUrl",
+        at.id as "awayTeam_id", at.name as "awayTeam_name", at."shortName" as "awayTeam_shortName", at."logoUrl" as "awayTeam_logoUrl"
+      FROM events e
+      INNER JOIN sports s ON e."sportId" = s.id
+      LEFT JOIN teams ht ON e."homeTeamId" = ht.id
+      LEFT JOIN teams at ON e."awayTeamId" = at.id
+      ${whereClause}
+      ${orderBy}
+      ${limitClause} ${offsetClause}
+    `;
+
+    const result = await db.query(query, params);
+    
+    // Fetch predictions for each event
+    const eventIds = result.rows.map(r => r.id);
+    const predictions: Map<string, Prediction[]> = new Map();
+    
+    if (eventIds.length > 0) {
+      const predQuery = `
+        SELECT * FROM predictions 
+        WHERE "eventId" = ANY($1)
+        ORDER BY "generatedAt" DESC
+      `;
+      const predResult = await db.query<Prediction>(predQuery, [eventIds]);
+      
+      for (const pred of predResult.rows) {
+        if (!predictions.has(pred.eventId)) {
+          predictions.set(pred.eventId, []);
+        }
+        predictions.get(pred.eventId)!.push(pred);
+      }
+    }
+
+    return result.rows.map(row => ({
+      id: row.id,
+      externalId: row.externalId,
+      sportId: row.sportId,
+      homeTeamId: row.homeTeamId,
+      awayTeamId: row.awayTeamId,
+      participant1Name: row.participant1Name,
+      participant2Name: row.participant2Name,
+      eventName: row.eventName,
+      venue: row.venue,
+      date: row.date,
+      status: row.status,
+      league: row.league,
+      season: row.season,
+      round: row.round,
+      homeScore: row.homeScore,
+      awayScore: row.awayScore,
+      winner: row.winner,
+      attendance: row.attendance,
+      description: row.description,
+      homeTeamSnapshot: row.homeTeamSnapshot,
+      awayTeamSnapshot: row.awayTeamSnapshot,
+      snapshotGeneratedAt: row.snapshotGeneratedAt,
+      isDeleted: row.isDeleted,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      sport: {
+        id: row.sport_id,
+        name: row.sport_name,
+        displayName: row.sport_displayName,
+      },
+      homeTeam: row.homeTeam_id ? {
+        id: row.homeTeam_id,
+        name: row.homeTeam_name,
+        shortName: row.homeTeam_shortName,
+        logoUrl: row.homeTeam_logoUrl,
+      } : null,
+      awayTeam: row.awayTeam_id ? {
+        id: row.awayTeam_id,
+        name: row.awayTeam_name,
+        shortName: row.awayTeam_shortName,
+        logoUrl: row.awayTeam_logoUrl,
+      } : null,
+      predictions: predictions.get(row.id)?.slice(0, 1) || [],
+    }));
+  }
+
+  /**
    * Find upcoming events with filters
    */
   async findUpcoming(filters: {
@@ -41,65 +206,22 @@ class EventRepository {
     limit?: number;
     offset?: number;
   }): Promise<EventWithRelations[]> {
-    const where: Prisma.EventWhereInput = {
+    const { where, params } = this.buildWhereClause({
       status: EventStatus.upcoming,
       isDeleted: false,
-      date: {
-        gte: filters.dateFrom || new Date(),
-        ...(filters.dateTo && { lte: filters.dateTo }),
-      },
-      ...(filters.sport && {
-        sport: {
-          name: filters.sport,
-        },
-      }),
-      ...(filters.league && {
-        league: {
-          contains: filters.league,
-          mode: 'insensitive' as Prisma.QueryMode,
-        },
-      }),
-    };
-
-    return prisma.event.findMany({
-      where,
-      include: {
-        sport: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
-        homeTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        awayTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        predictions: {
-          orderBy: {
-            generatedAt: 'desc',
-          },
-          take: 1,
-        },
-      },
-      orderBy: {
-        date: 'asc',
-      },
-      take: filters.limit,
-      skip: filters.offset,
+      dateFrom: filters.dateFrom || new Date(),
+      dateTo: filters.dateTo,
+      sport: filters.sport,
+      league: filters.league,
     });
+
+    return this.fetchEventsWithRelations(
+      where,
+      params,
+      'ORDER BY e.date ASC',
+      filters.limit,
+      filters.offset
+    );
   }
 
   /**
@@ -113,69 +235,26 @@ class EventRepository {
     limit?: number;
     offset?: number;
   }): Promise<EventWithRelations[]> {
-    const where: Prisma.EventWhereInput = {
+    const { where, params } = this.buildWhereClause({
       status: EventStatus.completed,
       isDeleted: false,
-      date: {
-        lte: filters.dateTo || new Date(),
-        ...(filters.dateFrom && { gte: filters.dateFrom }),
-      },
-      ...(filters.sport && {
-        sport: {
-          name: filters.sport,
-        },
-      }),
-      ...(filters.league && {
-        league: {
-          contains: filters.league,
-          mode: 'insensitive' as Prisma.QueryMode,
-        },
-      }),
-    };
-
-    return prisma.event.findMany({
-      where,
-      include: {
-        sport: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
-        homeTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        awayTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        predictions: {
-          orderBy: {
-            generatedAt: 'desc',
-          },
-          take: 1,
-        },
-      },
-      orderBy: {
-        date: 'desc', // Most recent first for past events
-      },
-      take: filters.limit,
-      skip: filters.offset,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo || new Date(),
+      sport: filters.sport,
+      league: filters.league,
     });
+
+    return this.fetchEventsWithRelations(
+      where,
+      params,
+      'ORDER BY e.date DESC',
+      filters.limit,
+      filters.offset
+    );
   }
 
   /**
-   * Count upcoming events with filters
+   * Count events by filters
    */
   async countByFilters(filters: {
     sport?: string;
@@ -183,27 +262,26 @@ class EventRepository {
     dateTo?: Date;
     league?: string;
   }): Promise<number> {
-    const where: Prisma.EventWhereInput = {
+    const { where, params } = this.buildWhereClause({
       status: EventStatus.upcoming,
       isDeleted: false,
-      date: {
-        gte: filters.dateFrom || new Date(),
-        ...(filters.dateTo && { lte: filters.dateTo }),
-      },
-      ...(filters.sport && {
-        sport: {
-          name: filters.sport,
-        },
-      }),
-      ...(filters.league && {
-        league: {
-          contains: filters.league,
-          mode: 'insensitive' as Prisma.QueryMode,
-        },
-      }),
-    };
+      dateFrom: filters.dateFrom || new Date(),
+      dateTo: filters.dateTo,
+      sport: filters.sport,
+      league: filters.league,
+    });
 
-    return prisma.event.count({ where });
+    const query = `
+      SELECT COUNT(*)::int as count
+      FROM events e
+      INNER JOIN sports s ON e."sportId" = s.id
+      LEFT JOIN teams ht ON e."homeTeamId" = ht.id
+      LEFT JOIN teams at ON e."awayTeamId" = at.id
+      ${where}
+    `;
+
+    const result = await db.query<{ count: number }>(query, params);
+    return result.rows[0].count;
   }
 
   /**
@@ -215,71 +293,43 @@ class EventRepository {
     dateTo?: Date;
     league?: string;
   }): Promise<number> {
-    const where: Prisma.EventWhereInput = {
+    const { where, params } = this.buildWhereClause({
       status: EventStatus.completed,
       isDeleted: false,
-      date: {
-        lte: filters.dateTo || new Date(),
-        ...(filters.dateFrom && { gte: filters.dateFrom }),
-      },
-      ...(filters.sport && {
-        sport: {
-          name: filters.sport,
-        },
-      }),
-      ...(filters.league && {
-        league: {
-          contains: filters.league,
-          mode: 'insensitive' as Prisma.QueryMode,
-        },
-      }),
-    };
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo || new Date(),
+      sport: filters.sport,
+      league: filters.league,
+    });
 
-    return prisma.event.count({ where });
+    const query = `
+      SELECT COUNT(*)::int as count
+      FROM events e
+      INNER JOIN sports s ON e."sportId" = s.id
+      LEFT JOIN teams ht ON e."homeTeamId" = ht.id
+      LEFT JOIN teams at ON e."awayTeamId" = at.id
+      ${where}
+    `;
+
+    const result = await db.query<{ count: number }>(query, params);
+    return result.rows[0].count;
   }
 
   /**
    * Find event by ID
    */
   async findById(id: string): Promise<EventWithRelations | null> {
-    return prisma.event.findUnique({
-      where: { id },
-      include: {
-        sport: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
-        homeTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        awayTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        predictions: {
-          orderBy: {
-            generatedAt: 'desc',
-          },
-          take: 1,
-        },
-      },
-    });
+    const events = await this.fetchEventsWithRelations(
+      'WHERE e.id = $1',
+      [id],
+      '',
+      1
+    );
+    return events[0] || null;
   }
 
   /**
-   * Search events by team name
+   * Search events by team name or other filters
    */
   async findByFilters(filters: {
     query?: string;
@@ -287,101 +337,25 @@ class EventRepository {
     limit?: number;
     offset?: number;
   }): Promise<EventWithRelations[]> {
-    const where: Prisma.EventWhereInput = {
+    const { where, params } = this.buildWhereClause({
       status: EventStatus.upcoming,
       isDeleted: false,
-      date: {
-        gte: new Date(),
-      },
-      ...(filters.query && {
-        OR: [
-          {
-            eventName: {
-              contains: filters.query,
-              mode: 'insensitive' as Prisma.QueryMode,
-            },
-          },
-          {
-            homeTeam: {
-              name: {
-                contains: filters.query,
-                mode: 'insensitive' as Prisma.QueryMode,
-              },
-            },
-          },
-          {
-            awayTeam: {
-              name: {
-                contains: filters.query,
-                mode: 'insensitive' as Prisma.QueryMode,
-              },
-            },
-          },
-          {
-            participant1Name: {
-              contains: filters.query,
-              mode: 'insensitive' as Prisma.QueryMode,
-            },
-          },
-          {
-            participant2Name: {
-              contains: filters.query,
-              mode: 'insensitive' as Prisma.QueryMode,
-            },
-          },
-        ],
-      }),
-      ...(filters.sport && {
-        sport: {
-          name: filters.sport,
-        },
-      }),
-    };
-
-    return prisma.event.findMany({
-      where,
-      include: {
-        sport: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
-        homeTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        awayTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        predictions: {
-          orderBy: {
-            generatedAt: 'desc',
-          },
-          take: 1,
-        },
-      },
-      orderBy: {
-        date: 'asc',
-      },
-      take: filters.limit,
-      skip: filters.offset,
+      dateFrom: new Date(),
+      query: filters.query,
+      sport: filters.sport,
     });
+
+    return this.fetchEventsWithRelations(
+      where,
+      params,
+      'ORDER BY e.date ASC',
+      filters.limit,
+      filters.offset
+    );
   }
 
   /**
-   * Full-text search across events using PostgreSQL full-text search
-   * Searches event names, team names, and participant names
+   * Full-text search across events
    */
   async fullTextSearch(filters: {
     query: string;
@@ -389,126 +363,19 @@ class EventRepository {
     limit?: number;
     offset?: number;
   }): Promise<EventWithRelations[]> {
-    const searchQuery = filters.query.toLowerCase();
-    
-    const where: Prisma.EventWhereInput = {
+    const { where, params } = this.buildWhereClause({
       isDeleted: false,
-      OR: [
-        {
-          eventName: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-        {
-          homeTeam: {
-            OR: [
-              {
-                name: {
-                  contains: searchQuery,
-                  mode: 'insensitive' as Prisma.QueryMode,
-                },
-              },
-              {
-                shortName: {
-                  contains: searchQuery,
-                  mode: 'insensitive' as Prisma.QueryMode,
-                },
-              },
-            ],
-          },
-        },
-        {
-          awayTeam: {
-            OR: [
-              {
-                name: {
-                  contains: searchQuery,
-                  mode: 'insensitive' as Prisma.QueryMode,
-                },
-              },
-              {
-                shortName: {
-                  contains: searchQuery,
-                  mode: 'insensitive' as Prisma.QueryMode,
-                },
-              },
-            ],
-          },
-        },
-        {
-          participant1Name: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-        {
-          participant2Name: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-        {
-          venue: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-        {
-          league: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-      ],
-      ...(filters.sport && {
-        sport: {
-          name: filters.sport,
-        },
-      }),
-    };
-
-    return prisma.event.findMany({
-      where,
-      include: {
-        sport: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
-        homeTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        awayTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortName: true,
-            logoUrl: true,
-          },
-        },
-        predictions: {
-          orderBy: {
-            generatedAt: 'desc',
-          },
-          take: 1,
-        },
-      },
-      orderBy: [
-        {
-          date: 'asc',
-        },
-      ],
-      take: filters.limit,
-      skip: filters.offset,
+      query: filters.query,
+      sport: filters.sport,
     });
+
+    return this.fetchEventsWithRelations(
+      where,
+      params,
+      'ORDER BY e.date ASC',
+      filters.limit,
+      filters.offset
+    );
   }
 
   /**
@@ -518,86 +385,23 @@ class EventRepository {
     query: string;
     sport?: string;
   }): Promise<number> {
-    const searchQuery = filters.query.toLowerCase();
-    
-    const where: Prisma.EventWhereInput = {
+    const { where, params } = this.buildWhereClause({
       isDeleted: false,
-      OR: [
-        {
-          eventName: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-        {
-          homeTeam: {
-            OR: [
-              {
-                name: {
-                  contains: searchQuery,
-                  mode: 'insensitive' as Prisma.QueryMode,
-                },
-              },
-              {
-                shortName: {
-                  contains: searchQuery,
-                  mode: 'insensitive' as Prisma.QueryMode,
-                },
-              },
-            ],
-          },
-        },
-        {
-          awayTeam: {
-            OR: [
-              {
-                name: {
-                  contains: searchQuery,
-                  mode: 'insensitive' as Prisma.QueryMode,
-                },
-              },
-              {
-                shortName: {
-                  contains: searchQuery,
-                  mode: 'insensitive' as Prisma.QueryMode,
-                },
-              },
-            ],
-          },
-        },
-        {
-          participant1Name: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-        {
-          participant2Name: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-        {
-          venue: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-        {
-          league: {
-            contains: searchQuery,
-            mode: 'insensitive' as Prisma.QueryMode,
-          },
-        },
-      ],
-      ...(filters.sport && {
-        sport: {
-          name: filters.sport,
-        },
-      }),
-    };
+      query: filters.query,
+      sport: filters.sport,
+    });
 
-    return prisma.event.count({ where });
+    const query = `
+      SELECT COUNT(*)::int as count
+      FROM events e
+      INNER JOIN sports s ON e."sportId" = s.id
+      LEFT JOIN teams ht ON e."homeTeamId" = ht.id
+      LEFT JOIN teams at ON e."awayTeamId" = at.id
+      ${where}
+    `;
+
+    const result = await db.query<{ count: number }>(query, params);
+    return result.rows[0].count;
   }
 }
 

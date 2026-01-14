@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../lib/prisma';
+import db from '../lib/db';
 import cacheService from '../services/cache.service';
 import { asyncHandler } from '../middleware/error-handler';
 
@@ -29,10 +29,16 @@ interface ServiceStatus {
 const checkDatabase = async (): Promise<ServiceStatus> => {
   const start = Date.now();
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    const result = await db.query('SELECT NOW()');
+    if (result.rows.length > 0) {
+      return {
+        status: 'up',
+        responseTime: Date.now() - start,
+      };
+    }
     return {
-      status: 'up',
-      responseTime: Date.now() - start,
+      status: 'down',
+      error: 'No response from database',
     };
   } catch (error) {
     return {

@@ -4,19 +4,17 @@
  */
 
 import request from 'supertest';
-import { PrismaClient } from '@prisma/client';
+import db from '../../lib/db';
 
-const prisma = new PrismaClient();
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3001';
 
 describe('Phase 3: Browse Upcoming Events - Integration Tests', () => {
   beforeAll(async () => {
-    // Ensure database is seeded
-    await prisma.$connect();
+    // Database connection is handled automatically by the pool
   });
 
   afterAll(async () => {
-    await prisma.$disconnect();
+    await db.disconnect();
   });
 
   /**
