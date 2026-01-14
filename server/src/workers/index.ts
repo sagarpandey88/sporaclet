@@ -1,176 +1,98 @@
-import { Worker, Job } from 'bullmq';
+import * as cron from 'node-cron';
 import dotenv from 'dotenv';
-import { closeQueues } from './queues/event-queue';
-import { 
-  fetchEventsJobConfig,
-  processFetchEventsJob 
-} from './jobs/fetch-events.job';
-import {
-  generatePredictionsJobConfig,
-  processGeneratePredictionsJob
-} from './jobs/generate-predictions.job';
-import {
-  updateResultsJobConfig,
-  processUpdateResultsJob
-} from './jobs/update-results.job';
+import { processFetchEventsJob } from './jobs/fetch-events.job';
+import { processGeneratePredictionsJob } from './jobs/generate-predictions.job';
+import { processUpdateResultsJob } from './jobs/update-results.job';
 import { logger } from '../middleware/logger';
 
 // Load environment variables
 dotenv.config();
 
-// Redis connection configuration for workers
-const redisConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null,
-};
+// Store active cron jobs for graceful shutdown
+const cronJobs: cron.ScheduledTask[] = [];
 
 /**
- * Process event jobs
+ * Wrapper to run jobs with error handling
  */
-const processEventJob = async (job: Job): Promise<void> => {
-  logger.info(`Processing job: ${job.name}`, {
-    jobId: job.id,
-    jobName: job.name,
-  });
+async function runJobWithErrorHandling(
+  jobName: string,
+  jobFn: () => Promise<void>
+): Promise<void> {
+  logger.info(`Starting cron job: ${jobName}`);
   
   try {
-    switch (job.name) {
-      case fetchEventsJobConfig.name:
-        await processFetchEventsJob(job);
-        break;
-
-      case generatePredictionsJobConfig.name:
-        await processGeneratePredictionsJob(job);
-        break;
-
-      case updateResultsJobConfig.name:
-        await processUpdateResultsJob(job);
-        break;
-
-      default:
-        logger.warn(`Unknown job type: ${job.name}`, {
-          jobId: job.id,
-          jobName: job.name,
-        });
-    }
-
-    logger.info(`Job completed: ${job.name}`, {
-      jobId: job.id,
-    });
+    await jobFn();
+    logger.info(`Cron job completed: ${jobName}`);
   } catch (error) {
-    logger.error(`Job failed: ${job.name}`, {
-      jobId: job.id,
+    logger.error(`Cron job failed: ${jobName}`, {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-    });
-    throw error;
-  }
-};
-
-/**
- * Create and start the event worker
- */
-const eventWorker = new Worker('events', processEventJob, {
-  connection: redisConnection,
-  concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5'),
-  limiter: {
-    max: 10, // Max 10 jobs
-    duration: 1000, // per second
-  },
-});
-
-// Worker event listeners
-eventWorker.on('ready', () => {
-  console.log('🚀 Event worker is ready');
-});
-
-eventWorker.on('active', (job: Job) => {
-  console.log(`▶️  Job ${job.id} started`);
-});
-
-eventWorker.on('completed', (job: Job) => {
-  console.log(`✅ Job ${job.id} completed`);
-});
-
-eventWorker.on('failed', (job: Job | undefined, error: Error) => {
-  console.error(`❌ Job ${job?.id} failed:`, error.message);
-});
-
-eventWorker.on('error', (error: Error) => {
-  console.error('❌ Worker error:', error);
-});
-
-/**
- * Setup recurring jobs with cron schedules
- */
-async function setupRecurringJobs() {
-  const { eventQueue } = await import('./queues/event-queue');
-  
-  try {
-    // Fetch events: Daily at 2:00 AM
-    await eventQueue.add(
-      fetchEventsJobConfig.name,
-      {},
-      {
-        repeat: {
-          pattern: '0 2 * * *', // Cron: 2:00 AM every day
-        },
-        ...fetchEventsJobConfig.options,
-      }
-    );
-    logger.info('Scheduled recurring job: fetch-events (daily at 2:00 AM)');
-
-    // Generate predictions: Twice daily at 6:00 AM and 6:00 PM
-    await eventQueue.add(
-      generatePredictionsJobConfig.name,
-      {},
-      {
-        repeat: {
-          pattern: '0 6,18 * * *', // Cron: 6:00 AM and 6:00 PM every day
-        },
-        ...generatePredictionsJobConfig.options,
-      }
-    );
-    logger.info('Scheduled recurring job: generate-predictions (twice daily at 6 AM and 6 PM)');
-
-    // Update results: Every hour
-    await eventQueue.add(
-      updateResultsJobConfig.name,
-      {},
-      {
-        repeat: {
-          pattern: '0 * * * *', // Cron: Every hour at minute 0
-        },
-        ...updateResultsJobConfig.options,
-      }
-    );
-    logger.info('Scheduled recurring job: update-results (hourly)');
-
-    logger.info('All recurring jobs scheduled successfully');
-  } catch (error) {
-    logger.error('Failed to setup recurring jobs', {
-      error: error instanceof Error ? error.message : String(error),
     });
   }
 }
 
-// Setup recurring jobs on worker start
-setupRecurringJobs().catch((error) => {
-  logger.error('Error during recurring jobs setup', { error });
-});
+/**
+ * Setup cron-based recurring jobs
+ */
+function setupCronJobs(): void {
+  try {
+    // Fetch events: Daily at 2:00 AM
+    const fetchEventsSchedule = process.env.WORKER_FETCH_EVENTS_SCHEDULE || '0 2 * * *';
+    const fetchEventsJob = cron.schedule(fetchEventsSchedule, () => {
+      void runJobWithErrorHandling('fetch-events', () => processFetchEventsJob());
+    });
+    cronJobs.push(fetchEventsJob);
+    logger.info(`Scheduled cron job: fetch-events (${fetchEventsSchedule})`);
+    // eslint-disable-next-line no-console
+    console.log(`✅ Scheduled: fetch-events (${fetchEventsSchedule})`);
+
+    // Generate predictions: Twice daily at 6:00 AM and 6:00 PM
+    const generatePredictionsSchedule = process.env.WORKER_GENERATE_PREDICTIONS_SCHEDULE || '0 6,18 * * *';
+    const generatePredictionsJob = cron.schedule(generatePredictionsSchedule, () => {
+      void runJobWithErrorHandling('generate-predictions', () => processGeneratePredictionsJob());
+    });
+    cronJobs.push(generatePredictionsJob);
+    logger.info(`Scheduled cron job: generate-predictions (${generatePredictionsSchedule})`);
+    // eslint-disable-next-line no-console
+    console.log(`✅ Scheduled: generate-predictions (${generatePredictionsSchedule})`);
+
+    // Update results: Every hour
+    const updateResultsSchedule = process.env.WORKER_UPDATE_RESULTS_SCHEDULE || '0 * * * *';
+    const updateResultsJob = cron.schedule(updateResultsSchedule, () => {
+      void runJobWithErrorHandling('update-results', () => processUpdateResultsJob());
+    });
+    cronJobs.push(updateResultsJob);
+    logger.info(`Scheduled cron job: update-results (${updateResultsSchedule})`);
+    // eslint-disable-next-line no-console
+    console.log(`✅ Scheduled: update-results (${updateResultsSchedule})`);
+
+    logger.info('All cron jobs scheduled successfully');
+    // eslint-disable-next-line no-console
+    console.log('✅ All cron jobs scheduled successfully');
+  } catch (error) {
+    logger.error('Failed to setup cron jobs', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // eslint-disable-next-line no-console
+    console.error('❌ Failed to setup cron jobs:', error);
+    process.exit(1);
+  }
+}
 
 // Graceful shutdown
-const gracefulShutdown = async (): Promise<void> => {
+const gracefulShutdown = (): void => {
+  // eslint-disable-next-line no-console
   console.log('🛑 Shutting down worker...');
   
   try {
-    await eventWorker.close();
-    await closeQueues();
+    // Stop all cron jobs
+    cronJobs.forEach((job) => job.stop());
+    logger.info('All cron jobs stopped');
+    // eslint-disable-next-line no-console
     console.log('✅ Worker shut down gracefully');
     process.exit(0);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('❌ Error during worker shutdown:', error);
     process.exit(1);
   }
@@ -179,6 +101,9 @@ const gracefulShutdown = async (): Promise<void> => {
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
-console.log('🔧 Event worker started');
-console.log(`📊 Concurrency: ${process.env.WORKER_CONCURRENCY || 5}`);
-console.log(`🔗 Redis: ${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`);
+// Start the cron scheduler
+// eslint-disable-next-line no-console
+console.log('🔧 Starting cron-based worker...');
+setupCronJobs();
+// eslint-disable-next-line no-console
+console.log('🚀 Cron worker is ready and running');

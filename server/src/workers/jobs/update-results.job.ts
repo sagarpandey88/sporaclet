@@ -6,10 +6,8 @@
  * prediction accuracy flags.
  * 
  * Schedule: Every hour
- * Retry: 3 attempts with exponential backoff
  */
 
-import { Job } from 'bullmq';
 import { PrismaClient, WinnerType } from '@prisma/client';
 import { logger } from '../../middleware/logger';
 
@@ -53,35 +51,35 @@ function determineWinner(homeScore: number, awayScore: number): WinnerType {
  */
 function isPredictionAccurate(
   prediction: {
-    homeWinProbability: number;
-    awayWinProbability: number;
-    drawProbability: number;
+    home: number;
+    away: number;
+    draw: number;
   },
   actualWinner: WinnerType
 ): boolean {
   const maxProb = Math.max(
-    prediction.homeWinProbability,
-    prediction.awayWinProbability,
-    prediction.drawProbability
+    prediction.home,
+    prediction.away,
+    prediction.draw
   );
 
   if (
     actualWinner === WinnerType.home &&
-    prediction.homeWinProbability === maxProb
+    prediction.home === maxProb
   ) {
     return true;
   }
 
   if (
     actualWinner === WinnerType.away &&
-    prediction.awayWinProbability === maxProb
+    prediction.away === maxProb
   ) {
     return true;
   }
 
   if (
     actualWinner === WinnerType.draw &&
-    prediction.drawProbability === maxProb
+    prediction.draw === maxProb
   ) {
     return true;
   }
@@ -93,13 +91,12 @@ function isPredictionAccurate(
  * Process update-results job
  */
 export async function processUpdateResultsJob(
-  job: Job<UpdateResultsJobData>
+  data: UpdateResultsJobData = {}
 ): Promise<void> {
   const startTime = Date.now();
-  const { eventId } = job.data;
+  const { eventId } = data;
 
   logger.info('Starting update-results job', {
-    jobId: job.id,
     eventId,
   });
 
@@ -128,11 +125,7 @@ export async function processUpdateResultsJob(
       },
     });
 
-    await job.updateProgress(10);
-
-    logger.info(`Found ${events.length} events to check for results`, {
-      jobId: job.id,
-    });
+    logger.info(`Found ${events.length} events to check for results`);
 
     let updatedCount = 0;
     let accuracyUpdated = 0;
@@ -170,12 +163,12 @@ export async function processUpdateResultsJob(
           
           // Parse probabilities from JSON
           const probabilities = prediction.probabilities as any;
-          const homeWinProbability = probabilities?.homeWinProbability || 0;
-          const awayWinProbability = probabilities?.awayWinProbability || 0;
-          const drawProbability = probabilities?.drawProbability || 0;
+          const home = probabilities?.home || 0;
+          const away = probabilities?.away || 0;
+          const draw = probabilities?.draw || 0;
           
           const isAccurate = isPredictionAccurate(
-            { homeWinProbability, awayWinProbability, drawProbability },
+            { home, away, draw },
             winner
           );
 
@@ -184,9 +177,18 @@ export async function processUpdateResultsJob(
           if (isAccurate) {
             accuracyNote = `Correctly predicted ${winner} win`;
           } else {
-            const predictedWinner = homeWinProbability > awayWinProbability
-              ? (homeWinProbability > drawProbability ? 'home' : 'draw')
-              : (awayWinProbability > drawProbability ? 'away' : 'draw');
+            // Find the predicted winner based on highest probability
+            const maxProb = Math.max(home, away, draw);
+            let predictedWinner: string;
+            
+            if (home === maxProb) {
+              predictedWinner = 'home';
+            } else if (away === maxProb) {
+              predictedWinner = 'away';
+            } else {
+              predictedWinner = 'draw';
+            }
+            
             accuracyNote = `Predicted ${predictedWinner} win, but actual result was ${winner}`;
           }
 
@@ -209,10 +211,6 @@ export async function processUpdateResultsJob(
           });
         }
 
-        // Update progress
-        const progress = Math.min(10 + (90 * (i + 1)) / events.length, 100);
-        await job.updateProgress(progress);
-
       } catch (error) {
         logger.error('Error updating result for event', {
           eventId: event.id,
@@ -225,7 +223,6 @@ export async function processUpdateResultsJob(
     const duration = Date.now() - startTime;
 
     logger.info('Update-results job completed successfully', {
-      jobId: job.id,
       duration: `${duration}ms`,
       totalProcessed: events.length,
       eventsUpdated: updatedCount,
@@ -236,34 +233,11 @@ export async function processUpdateResultsJob(
     const duration = Date.now() - startTime;
 
     logger.error('Update-results job failed', {
-      jobId: job.id,
       duration: `${duration}ms`,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    throw error; // Re-throw to trigger retry
+    throw error;
   }
 }
-
-/**
- * Job configuration
- */
-export const updateResultsJobConfig = {
-  name: 'update-results',
-  processor: processUpdateResultsJob,
-  options: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential' as const,
-      delay: 5000, // Start with 5 seconds
-    },
-    removeOnComplete: {
-      age: 7 * 24 * 60 * 60, // Keep completed jobs for 7 days
-      count: 100, // Keep last 100 completed jobs
-    },
-    removeOnFail: {
-      age: 30 * 24 * 60 * 60, // Keep failed jobs for 30 days
-    },
-  },
-};
