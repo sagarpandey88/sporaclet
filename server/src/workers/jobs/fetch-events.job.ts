@@ -10,7 +10,7 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../../middleware/logger';
 
-const prisma = new PrismaClient();
+// Using in-memory data store instead of Prisma
 
 interface FetchEventsJobData {
   sportSlug?: string;

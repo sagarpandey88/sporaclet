@@ -81,10 +81,10 @@ const gracefulShutdown = async (): Promise<void> => {
     logger.info('✅ HTTP server closed');
     
     try {
-      // Close database connection
-      const prisma = await import('./lib/prisma');
-      await prisma.default.$disconnect();
-      logger.info('✅ Database connection closed');
+      // Close data store connection
+      const dataStore = await import('./lib/data-store');
+      await dataStore.default.$disconnect();
+      logger.info('✅ Data store connection closed');
       
       // Close cache connection
       const cacheService = await import('./services/cache.service');

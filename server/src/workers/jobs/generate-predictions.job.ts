@@ -7,10 +7,10 @@
  * Schedule: Twice daily (6:00 AM and 6:00 PM)
  */
 
-import { PrismaClient } from '@prisma/client';
+import dataStore from '../../lib/data-store';
 import { logger } from '../../middleware/logger';
 
-const prisma = new PrismaClient();
+// Using in-memory data store instead of Prisma
 
 interface GeneratePredictionsJobData {
   eventId?: string;

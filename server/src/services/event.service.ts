@@ -1,7 +1,7 @@
 import eventRepository from '../repositories/event.repository';
 import headToHeadRepository from '../repositories/head-to-head.repository';
 import cacheService from './cache.service';
-import { EventStatus } from '@prisma/client';
+import { EventStatus } from '../types/models';
 import { AppError } from '../middleware/error-handler';
 
 /**

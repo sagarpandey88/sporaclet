@@ -8,10 +8,11 @@
  * Schedule: Every hour
  */
 
-import { PrismaClient, WinnerType } from '@prisma/client';
+import dataStore from '../../lib/data-store';
+import { WinnerType } from '../../types/models';
 import { logger } from '../../middleware/logger';
 
-const prisma = new PrismaClient();
+// Using in-memory data store instead of Prisma
 
 interface UpdateResultsJobData {
   eventId?: string;

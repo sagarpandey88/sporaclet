@@ -1,6 +1,6 @@
 import eventRepository from '../repositories/event.repository';
 import cacheService from './cache.service';
-import { EventStatus } from '@prisma/client';
+import { EventStatus } from '../types/models';
 
 /**
  * Search Service

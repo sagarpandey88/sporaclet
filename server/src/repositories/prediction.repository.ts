@@ -1,5 +1,5 @@
-import prisma from '../lib/prisma';
-import { Prediction, WinnerType, ConfidenceLevel } from '@prisma/client';
+import dataStore from '../lib/data-store';
+import { Prediction, WinnerType, ConfidenceLevel } from '../types/models';
 
 /**
  * Prediction Repository
@@ -10,7 +10,7 @@ class PredictionRepository {
    * Find latest prediction for an event
    */
   async findLatestByEvent(eventId: string): Promise<Prediction | null> {
-    return prisma.prediction.findFirst({
+    return dataStore.prediction.findFirst({
       where: {
         eventId,
       },
@@ -31,7 +31,7 @@ class PredictionRepository {
     keyFactors: string[];
     modelVersion: string;
   }): Promise<Prediction> {
-    return prisma.prediction.create({
+    return dataStore.prediction.create({
       data: {
         eventId: data.eventId,
         probabilities: data.probabilities,
@@ -51,7 +51,7 @@ class PredictionRepository {
     isAccurate: boolean,
     accuracyNote?: string
   ): Promise<Prediction> {
-    return prisma.prediction.update({
+    return dataStore.prediction.update({
       where: { id },
       data: {
         isAccurate,
@@ -70,10 +70,10 @@ class PredictionRepository {
     pending: number;
   }> {
     const [total, accurate, inaccurate, pending] = await Promise.all([
-      prisma.prediction.count(),
-      prisma.prediction.count({ where: { isAccurate: true } }),
-      prisma.prediction.count({ where: { isAccurate: false } }),
-      prisma.prediction.count({ where: { isAccurate: null } }),
+      dataStore.prediction.count(),
+      dataStore.prediction.count({ where: { isAccurate: true } }),
+      dataStore.prediction.count({ where: { isAccurate: false } }),
+      dataStore.prediction.count({ where: { isAccurate: null } }),
     ]);
 
     return { total, accurate, inaccurate, pending };

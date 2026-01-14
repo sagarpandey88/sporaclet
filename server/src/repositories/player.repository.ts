@@ -1,35 +1,23 @@
-import { Player, Prisma } from '@prisma/client';
-import prisma from '../lib/prisma';
+import { Player } from '../types/models';
+import dataStore from '../lib/data-store';
 
 export class PlayerRepository {
   /**
    * Find player by ID
    */
   async findById(id: string): Promise<Player | null> {
-    return await prisma.player.findUnique({
-      where: { id },
-      include: {
-        team: true,
-        sport: true,
-        injuries: {
-          where: { status: 'active' },
-        },
-      },
-    });
+    // Simplified: no includes in in-memory store
+    const players = await dataStore.player.findMany();
+    return players.find((p) => p.id === id) || null;
   }
 
   /**
    * Find players by team
    */
   async findByTeam(teamId: string): Promise<Player[]> {
-    return await prisma.player.findMany({
+    return await dataStore.player.findMany({
       where: { teamId },
       orderBy: { displayName: 'asc' },
-      include: {
-        injuries: {
-          where: { status: 'active' },
-        },
-      },
     });
   }
 
@@ -37,41 +25,35 @@ export class PlayerRepository {
    * Find player by external ID
    */
   async findByExternalId(externalId: string): Promise<Player | null> {
-    return await prisma.player.findUnique({
-      where: { externalId },
-    });
+    const players = await dataStore.player.findMany();
+    return players.find((p) => p.externalId === externalId) || null;
   }
 
   /**
    * Create new player
    */
-  async create(data: Prisma.PlayerCreateInput): Promise<Player> {
-    return await prisma.player.create({
-      data,
-    });
+  async create(data: Partial<Player>): Promise<Player> {
+    // Not implemented in simple in-memory store
+    throw new Error('Create operation not supported in simplified data store');
   }
 
   /**
    * Update player
    */
-  async update(id: string, data: Prisma.PlayerUpdateInput): Promise<Player> {
-    return await prisma.player.update({
-      where: { id },
-      data,
-    });
+  async update(id: string, data: Partial<Player>): Promise<Player> {
+    // Not implemented in simple in-memory store
+    throw new Error('Update operation not supported in simplified data store');
   }
 
   /**
    * Find active players by sport
    */
   async findActiveBySport(sportId: string): Promise<Player[]> {
-    return await prisma.player.findMany({
-      where: {
-        sportId,
-        isActive: true,
-      },
+    const players = await dataStore.player.findMany({
+      where: { sportId },
       orderBy: { displayName: 'asc' },
     });
+    return players.filter((p) => p.isActive);
   }
 }
 

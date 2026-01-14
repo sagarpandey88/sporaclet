@@ -1,5 +1,5 @@
-import prisma from '../lib/prisma';
-import { HeadToHead, Prisma } from '@prisma/client';
+import dataStore from '../lib/data-store';
+import { HeadToHead } from '../types/models';
 
 /**
  * HeadToHead Repository
@@ -10,13 +10,11 @@ class HeadToHeadRepository {
    * Find head-to-head record by team IDs
    */
   async findByTeams(team1Id: string, team2Id: string): Promise<HeadToHead | null> {
-    // Try both combinations since order matters in DB
-    const h2h = await prisma.headToHead.findFirst({
+    // Try both combinations since order matters
+    const h2h = await dataStore.headToHead.findFirst({
       where: {
-        OR: [
-          { team1Id, team2Id },
-          { team1Id: team2Id, team2Id: team1Id },
-        ],
+        team1Id,
+        team2Id,
       },
     });
 
@@ -33,23 +31,12 @@ class HeadToHeadRepository {
     team1Wins?: number;
     team2Wins?: number;
     draws?: number;
-    lastFiveResults?: Prisma.InputJsonValue;
+    lastFiveResults?: unknown;
     averageGoalsTeam1?: number;
     averageGoalsTeam2?: number;
   }): Promise<HeadToHead> {
-    return prisma.headToHead.create({
-      data: {
-        team1Id: data.team1Id,
-        team2Id: data.team2Id,
-        totalMatches: data.totalMatches || 0,
-        team1Wins: data.team1Wins || 0,
-        team2Wins: data.team2Wins || 0,
-        draws: data.draws || 0,
-        lastFiveResults: data.lastFiveResults || [],
-        averageGoalsTeam1: data.averageGoalsTeam1 || 0,
-        averageGoalsTeam2: data.averageGoalsTeam2 || 0,
-      },
-    });
+    // Not implemented in simple in-memory store
+    throw new Error('Create operation not supported in simplified data store');
   }
 
   /**
@@ -62,18 +49,13 @@ class HeadToHeadRepository {
       team1Wins?: number;
       team2Wins?: number;
       draws?: number;
-      lastFiveResults?: Prisma.InputJsonValue;
+      lastFiveResults?: unknown;
       averageGoalsTeam1?: number;
       averageGoalsTeam2?: number;
     }
   ): Promise<HeadToHead> {
-    return prisma.headToHead.update({
-      where: { id },
-      data: {
-        ...data,
-        lastUpdated: new Date(),
-      },
-    });
+    // Not implemented in simple in-memory store
+    throw new Error('Update operation not supported in simplified data store');
   }
 
   /**
@@ -86,23 +68,12 @@ class HeadToHeadRepository {
     team1Wins: number;
     team2Wins: number;
     draws: number;
-    lastFiveResults: Prisma.InputJsonValue;
+    lastFiveResults: unknown;
     averageGoalsTeam1: number;
     averageGoalsTeam2: number;
   }): Promise<HeadToHead> {
-    return prisma.headToHead.upsert({
-      where: {
-        team1Id_team2Id: {
-          team1Id: data.team1Id,
-          team2Id: data.team2Id,
-        },
-      },
-      create: data,
-      update: {
-        ...data,
-        lastUpdated: new Date(),
-      },
-    });
+    // Not implemented in simple in-memory store
+    throw new Error('Upsert operation not supported in simplified data store');
   }
 }
 

@@ -1,5 +1,5 @@
-import prisma from '../lib/prisma';
-import { Event, Prediction, EventStatus, Prisma } from '@prisma/client';
+import dataStore from '../lib/data-store';
+import { Event, Prediction, EventStatus, Prisma } from '../types/models';
 
 /**
  * Event with relations type
@@ -61,7 +61,7 @@ class EventRepository {
       }),
     };
 
-    return prisma.event.findMany({
+    return dataStore.event.findMany({
       where,
       include: {
         sport: {
@@ -133,7 +133,7 @@ class EventRepository {
       }),
     };
 
-    return prisma.event.findMany({
+    return dataStore.event.findMany({
       where,
       include: {
         sport: {
@@ -203,7 +203,7 @@ class EventRepository {
       }),
     };
 
-    return prisma.event.count({ where });
+    return dataStore.event.count({ where });
   }
 
   /**
@@ -235,14 +235,14 @@ class EventRepository {
       }),
     };
 
-    return prisma.event.count({ where });
+    return dataStore.event.count({ where });
   }
 
   /**
    * Find event by ID
    */
   async findById(id: string): Promise<EventWithRelations | null> {
-    return prisma.event.findUnique({
+    return dataStore.event.findUnique({
       where: { id },
       include: {
         sport: {
@@ -338,7 +338,7 @@ class EventRepository {
       }),
     };
 
-    return prisma.event.findMany({
+    return dataStore.event.findMany({
       where,
       include: {
         sport: {
@@ -468,7 +468,7 @@ class EventRepository {
       }),
     };
 
-    return prisma.event.findMany({
+    return dataStore.event.findMany({
       where,
       include: {
         sport: {
@@ -597,7 +597,7 @@ class EventRepository {
       }),
     };
 
-    return prisma.event.count({ where });
+    return dataStore.event.count({ where });
   }
 }
 

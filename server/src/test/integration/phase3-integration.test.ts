@@ -4,19 +4,17 @@
  */
 
 import request from 'supertest';
-import { PrismaClient } from '@prisma/client';
+import dataStore from '../../lib/data-store';
 
-const prisma = new PrismaClient();
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3001';
 
 describe('Phase 3: Browse Upcoming Events - Integration Tests', () => {
   beforeAll(async () => {
-    // Ensure database is seeded
-    await prisma.$connect();
+    // Data store is automatically initialized with sample data
   });
 
   afterAll(async () => {
-    await prisma.$disconnect();
+    await dataStore.$disconnect();
   });
 
   /**

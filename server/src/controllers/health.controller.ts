@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../lib/prisma';
+import dataStore from '../lib/data-store';
 import cacheService from '../services/cache.service';
 import { asyncHandler } from '../middleware/error-handler';
 
@@ -29,7 +29,8 @@ interface ServiceStatus {
 const checkDatabase = async (): Promise<ServiceStatus> => {
   const start = Date.now();
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    // Simple check for in-memory data store
+    await dataStore.sport.findMany();
     return {
       status: 'up',
       responseTime: Date.now() - start,
