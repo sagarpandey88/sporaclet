@@ -4,25 +4,8 @@ import { Event, Prediction, EventStatus } from '../types/models';
 /**
  * Event with relations type
  */
-type EventWithRelations = Event & {
-  sport: {
-    id: string;
-    name: string;
-    displayName: string;
-  };
-  homeTeam?: {
-    id: string;
-    name: string;
-    shortName: string;
-    logoUrl: string | null;
-  } | null;
-  awayTeam?: {
-    id: string;
-    name: string;
-    shortName: string;
-    logoUrl: string | null;
-  } | null;
-  predictions: Prediction[];
+type EventWithPrediction = Event & {
+  prediction?: Prediction | null;
 };
 
 /**
@@ -67,7 +50,7 @@ class EventRepository {
     }
 
     if (filters.sport) {
-      conditions.push(`s.name = $${paramCount++}`);
+      conditions.push(`e.sport->>'name' = $${paramCount++}`);
       params.push(filters.sport);
     }
 
@@ -80,10 +63,10 @@ class EventRepository {
       const searchPattern = `%${filters.query}%`;
       conditions.push(`(
         e."eventName" ILIKE $${paramCount} OR
-        ht.name ILIKE $${paramCount} OR
-        at.name ILIKE $${paramCount} OR
-        e."participant1Name" ILIKE $${paramCount} OR
-        e."participant2Name" ILIKE $${paramCount} OR
+        e."homeTeam"->>'name' ILIKE $${paramCount} OR
+        e."awayTeam"->>'name' ILIKE $${paramCount} OR
+        e."participant1"->>'name' ILIKE $${paramCount} OR
+        e."participant2"->>'name' ILIKE $${paramCount} OR
         e.venue ILIKE $${paramCount} OR
         e.league ILIKE $${paramCount}
       )`);
@@ -96,15 +79,15 @@ class EventRepository {
   }
 
   /**
-   * Fetch events with relations
+   * Fetch events with predictions
    */
-  private async fetchEventsWithRelations(
+  private async fetchEventsWithPrediction(
     whereClause: string,
     params: any[],
     orderBy: string,
     limit?: number,
     offset?: number
-  ): Promise<EventWithRelations[]> {
+  ): Promise<EventWithPrediction[]> {
     const limitClause = limit ? `LIMIT $${params.length + 1}` : '';
     const offsetClause = offset !== undefined ? `OFFSET $${params.length + (limit ? 2 : 1)}` : '';
     
@@ -114,85 +97,78 @@ class EventRepository {
     const query = `
       SELECT 
         e.*,
-        s.id as "sport_id", s.name as "sport_name", s."displayName" as "sport_displayName",
-        ht.id as "homeTeam_id", ht.name as "homeTeam_name", ht."shortName" as "homeTeam_shortName", ht."logoUrl" as "homeTeam_logoUrl",
-        at.id as "awayTeam_id", at.name as "awayTeam_name", at."shortName" as "awayTeam_shortName", at."logoUrl" as "awayTeam_logoUrl"
+        p.id as "prediction_id",
+        p.probabilities as "prediction_probabilities",
+        p."predictedWinner" as "prediction_predictedWinner",
+        p.confidence as "prediction_confidence",
+        p."keyFactors" as "prediction_keyFactors",
+        p."modelVersion" as "prediction_modelVersion",
+        p."generatedAt" as "prediction_generatedAt",
+        p."isAccurate" as "prediction_isAccurate",
+        p."accuracyNote" as "prediction_accuracyNote",
+        p."createdAt" as "prediction_createdAt",
+        p."updatedAt" as "prediction_updatedAt"
       FROM events e
-      INNER JOIN sports s ON e."sportId" = s.id
-      LEFT JOIN teams ht ON e."homeTeamId" = ht.id
-      LEFT JOIN teams at ON e."awayTeamId" = at.id
+      LEFT JOIN predictions p ON e.id = p."eventId"
       ${whereClause}
       ${orderBy}
       ${limitClause} ${offsetClause}
     `;
 
     const result = await db.query(query, params);
-    
-    // Fetch predictions for each event
-    const eventIds = result.rows.map(r => r.id);
-    const predictions: Map<string, Prediction[]> = new Map();
-    
-    if (eventIds.length > 0) {
-      const predQuery = `
-        SELECT * FROM predictions 
-        WHERE "eventId" = ANY($1)
-        ORDER BY "generatedAt" DESC
-      `;
-      const predResult = await db.query<Prediction>(predQuery, [eventIds]);
-      
-      for (const pred of predResult.rows) {
-        if (!predictions.has(pred.eventId)) {
-          predictions.set(pred.eventId, []);
-        }
-        predictions.get(pred.eventId)!.push(pred);
-      }
-    }
 
-    return result.rows.map(row => ({
-      id: row.id,
-      externalId: row.externalId,
-      sportId: row.sportId,
-      homeTeamId: row.homeTeamId,
-      awayTeamId: row.awayTeamId,
-      participant1Name: row.participant1Name,
-      participant2Name: row.participant2Name,
-      eventName: row.eventName,
-      venue: row.venue,
-      date: row.date,
-      status: row.status,
-      league: row.league,
-      season: row.season,
-      round: row.round,
-      homeScore: row.homeScore,
-      awayScore: row.awayScore,
-      winner: row.winner,
-      attendance: row.attendance,
-      description: row.description,
-      homeTeamSnapshot: row.homeTeamSnapshot,
-      awayTeamSnapshot: row.awayTeamSnapshot,
-      snapshotGeneratedAt: row.snapshotGeneratedAt,
-      isDeleted: row.isDeleted,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      sport: {
-        id: row.sport_id,
-        name: row.sport_name,
-        displayName: row.sport_displayName,
-      },
-      homeTeam: row.homeTeam_id ? {
-        id: row.homeTeam_id,
-        name: row.homeTeam_name,
-        shortName: row.homeTeam_shortName,
-        logoUrl: row.homeTeam_logoUrl,
-      } : null,
-      awayTeam: row.awayTeam_id ? {
-        id: row.awayTeam_id,
-        name: row.awayTeam_name,
-        shortName: row.awayTeam_shortName,
-        logoUrl: row.awayTeam_logoUrl,
-      } : null,
-      predictions: predictions.get(row.id)?.slice(0, 1) || [],
-    }));
+    return result.rows.map(row => {
+      const event: EventWithPrediction = {
+        id: row.id,
+        externalId: row.externalId,
+        eventName: row.eventName,
+        date: row.date,
+        status: row.status,
+        venue: row.venue,
+        league: row.league,
+        season: row.season,
+        round: row.round,
+        homeScore: row.homeScore,
+        awayScore: row.awayScore,
+        winner: row.winner,
+        attendance: row.attendance,
+        description: row.description,
+        sport: row.sport,
+        homeTeam: row.homeTeam,
+        awayTeam: row.awayTeam,
+        participant1: row.participant1,
+        participant2: row.participant2,
+        homeTeamPlayers: row.homeTeamPlayers,
+        awayTeamPlayers: row.awayTeamPlayers,
+        injuries: row.injuries,
+        headToHead: row.headToHead,
+        homeTeamSnapshot: row.homeTeamSnapshot,
+        awayTeamSnapshot: row.awayTeamSnapshot,
+        snapshotGeneratedAt: row.snapshotGeneratedAt,
+        isDeleted: row.isDeleted,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      };
+
+      if (row.prediction_id) {
+        event.prediction = {
+          id: row.prediction_id,
+          eventId: row.id,
+          probabilities: row.prediction_probabilities,
+          predictedWinner: row.prediction_predictedWinner,
+          confidence: row.prediction_confidence,
+          keyFactors: row.prediction_keyFactors,
+          modelVersion: row.prediction_modelVersion,
+          generatedAt: row.prediction_generatedAt,
+          isAccurate: row.prediction_isAccurate,
+          accuracyNote: row.prediction_accuracyNote,
+          createdAt: row.prediction_createdAt,
+          updatedAt: row.prediction_updatedAt,
+        };
+      }
+
+      return event;
+    });
   }
 
   /**
@@ -205,7 +181,7 @@ class EventRepository {
     league?: string;
     limit?: number;
     offset?: number;
-  }): Promise<EventWithRelations[]> {
+  }): Promise<EventWithPrediction[]> {
     const { where, params } = this.buildWhereClause({
       status: EventStatus.upcoming,
       isDeleted: false,
@@ -215,7 +191,7 @@ class EventRepository {
       league: filters.league,
     });
 
-    return this.fetchEventsWithRelations(
+    return this.fetchEventsWithPrediction(
       where,
       params,
       'ORDER BY e.date ASC',
@@ -234,7 +210,7 @@ class EventRepository {
     league?: string;
     limit?: number;
     offset?: number;
-  }): Promise<EventWithRelations[]> {
+  }): Promise<EventWithPrediction[]> {
     const { where, params } = this.buildWhereClause({
       status: EventStatus.completed,
       isDeleted: false,
@@ -244,7 +220,7 @@ class EventRepository {
       league: filters.league,
     });
 
-    return this.fetchEventsWithRelations(
+    return this.fetchEventsWithPrediction(
       where,
       params,
       'ORDER BY e.date DESC',
@@ -274,9 +250,6 @@ class EventRepository {
     const query = `
       SELECT COUNT(*)::int as count
       FROM events e
-      INNER JOIN sports s ON e."sportId" = s.id
-      LEFT JOIN teams ht ON e."homeTeamId" = ht.id
-      LEFT JOIN teams at ON e."awayTeamId" = at.id
       ${where}
     `;
 
@@ -305,9 +278,6 @@ class EventRepository {
     const query = `
       SELECT COUNT(*)::int as count
       FROM events e
-      INNER JOIN sports s ON e."sportId" = s.id
-      LEFT JOIN teams ht ON e."homeTeamId" = ht.id
-      LEFT JOIN teams at ON e."awayTeamId" = at.id
       ${where}
     `;
 
@@ -318,8 +288,8 @@ class EventRepository {
   /**
    * Find event by ID
    */
-  async findById(id: string): Promise<EventWithRelations | null> {
-    const events = await this.fetchEventsWithRelations(
+  async findById(id: string): Promise<EventWithPrediction | null> {
+    const events = await this.fetchEventsWithPrediction(
       'WHERE e.id = $1',
       [id],
       '',
@@ -336,7 +306,7 @@ class EventRepository {
     sport?: string;
     limit?: number;
     offset?: number;
-  }): Promise<EventWithRelations[]> {
+  }): Promise<EventWithPrediction[]> {
     const { where, params } = this.buildWhereClause({
       status: EventStatus.upcoming,
       isDeleted: false,
@@ -345,7 +315,7 @@ class EventRepository {
       sport: filters.sport,
     });
 
-    return this.fetchEventsWithRelations(
+    return this.fetchEventsWithPrediction(
       where,
       params,
       'ORDER BY e.date ASC',
@@ -362,14 +332,14 @@ class EventRepository {
     sport?: string;
     limit?: number;
     offset?: number;
-  }): Promise<EventWithRelations[]> {
+  }): Promise<EventWithPrediction[]> {
     const { where, params } = this.buildWhereClause({
       isDeleted: false,
       query: filters.query,
       sport: filters.sport,
     });
 
-    return this.fetchEventsWithRelations(
+    return this.fetchEventsWithPrediction(
       where,
       params,
       'ORDER BY e.date ASC',
@@ -394,9 +364,6 @@ class EventRepository {
     const query = `
       SELECT COUNT(*)::int as count
       FROM events e
-      INNER JOIN sports s ON e."sportId" = s.id
-      LEFT JOIN teams ht ON e."homeTeamId" = ht.id
-      LEFT JOIN teams at ON e."awayTeamId" = at.id
       ${where}
     `;
 

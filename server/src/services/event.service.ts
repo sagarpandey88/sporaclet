@@ -1,5 +1,4 @@
 import eventRepository from '../repositories/event.repository';
-import headToHeadRepository from '../repositories/head-to-head.repository';
 import cacheService from './cache.service';
 import { EventStatus } from '../types/models';
 import { AppError } from '../middleware/error-handler';
@@ -68,40 +67,22 @@ class EventService {
       id: event.id,
       externalId: event.externalId,
       eventName: event.eventName,
-      sport: {
-        id: event.sport.id,
-        name: event.sport.name,
-        displayName: event.sport.displayName,
-      },
-      ...(event.homeTeam && {
-        homeTeam: {
-          id: event.homeTeam.id,
-          name: event.homeTeam.name,
-          shortName: event.homeTeam.shortName,
-          logoUrl: event.homeTeam.logoUrl,
-        },
-      }),
-      ...(event.awayTeam && {
-        awayTeam: {
-          id: event.awayTeam.id,
-          name: event.awayTeam.name,
-          shortName: event.awayTeam.shortName,
-          logoUrl: event.awayTeam.logoUrl,
-        },
-      }),
-      ...(event.participant1Name && { participant1Name: event.participant1Name }),
-      ...(event.participant2Name && { participant2Name: event.participant2Name }),
+      sport: event.sport,
+      ...(event.homeTeam && { homeTeam: event.homeTeam }),
+      ...(event.awayTeam && { awayTeam: event.awayTeam }),
+      ...(event.participant1 && { participant1: event.participant1 }),
+      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
       league: event.league,
-      ...(event.predictions.length > 0 && {
+      ...(event.prediction && {
         prediction: {
-          id: event.predictions[0].id,
-          predictedWinner: event.predictions[0].predictedWinner,
-          confidence: event.predictions[0].confidence,
-          probabilities: event.predictions[0].probabilities,
-          generatedAt: event.predictions[0].generatedAt.toISOString(),
+          id: event.prediction.id,
+          predictedWinner: event.prediction.predictedWinner,
+          confidence: event.prediction.confidence,
+          probabilities: event.prediction.probabilities,
+          generatedAt: event.prediction.generatedAt.toISOString(),
         },
       }),
     }));
@@ -177,29 +158,11 @@ class EventService {
       id: event.id,
       externalId: event.externalId,
       eventName: event.eventName,
-      sport: {
-        id: event.sport.id,
-        name: event.sport.name,
-        displayName: event.sport.displayName,
-      },
-      ...(event.homeTeam && {
-        homeTeam: {
-          id: event.homeTeam.id,
-          name: event.homeTeam.name,
-          shortName: event.homeTeam.shortName,
-          logoUrl: event.homeTeam.logoUrl,
-        },
-      }),
-      ...(event.awayTeam && {
-        awayTeam: {
-          id: event.awayTeam.id,
-          name: event.awayTeam.name,
-          shortName: event.awayTeam.shortName,
-          logoUrl: event.awayTeam.logoUrl,
-        },
-      }),
-      ...(event.participant1Name && { participant1Name: event.participant1Name }),
-      ...(event.participant2Name && { participant2Name: event.participant2Name }),
+      sport: event.sport,
+      ...(event.homeTeam && { homeTeam: event.homeTeam }),
+      ...(event.awayTeam && { awayTeam: event.awayTeam }),
+      ...(event.participant1 && { participant1: event.participant1 }),
+      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
@@ -207,15 +170,15 @@ class EventService {
       homeScore: event.homeScore,
       awayScore: event.awayScore,
       winner: event.winner,
-      ...(event.predictions.length > 0 && {
+      ...(event.prediction && {
         prediction: {
-          id: event.predictions[0].id,
-          predictedWinner: event.predictions[0].predictedWinner,
-          confidence: event.predictions[0].confidence,
-          probabilities: event.predictions[0].probabilities,
-          isAccurate: event.predictions[0].isAccurate,
-          accuracyNote: event.predictions[0].accuracyNote,
-          generatedAt: event.predictions[0].generatedAt.toISOString(),
+          id: event.prediction.id,
+          predictedWinner: event.prediction.predictedWinner,
+          confidence: event.prediction.confidence,
+          probabilities: event.prediction.probabilities,
+          isAccurate: event.prediction.isAccurate,
+          accuracyNote: event.prediction.accuracyNote,
+          generatedAt: event.prediction.generatedAt.toISOString(),
         },
       }),
     }));
@@ -264,40 +227,22 @@ class EventService {
       id: event.id,
       externalId: event.externalId,
       eventName: event.eventName,
-      sport: {
-        id: event.sport.id,
-        name: event.sport.name,
-        displayName: event.sport.displayName,
-      },
-      ...(event.homeTeam && {
-        homeTeam: {
-          id: event.homeTeam.id,
-          name: event.homeTeam.name,
-          shortName: event.homeTeam.shortName,
-          logoUrl: event.homeTeam.logoUrl,
-        },
-      }),
-      ...(event.awayTeam && {
-        awayTeam: {
-          id: event.awayTeam.id,
-          name: event.awayTeam.name,
-          shortName: event.awayTeam.shortName,
-          logoUrl: event.awayTeam.logoUrl,
-        },
-      }),
-      ...(event.participant1Name && { participant1Name: event.participant1Name }),
-      ...(event.participant2Name && { participant2Name: event.participant2Name }),
+      sport: event.sport,
+      ...(event.homeTeam && { homeTeam: event.homeTeam }),
+      ...(event.awayTeam && { awayTeam: event.awayTeam }),
+      ...(event.participant1 && { participant1: event.participant1 }),
+      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
       league: event.league,
-      ...(event.predictions.length > 0 && {
+      ...(event.prediction && {
         prediction: {
-          id: event.predictions[0].id,
-          predictedWinner: event.predictions[0].predictedWinner,
-          confidence: event.predictions[0].confidence,
-          probabilities: event.predictions[0].probabilities,
-          generatedAt: event.predictions[0].generatedAt.toISOString(),
+          id: event.prediction.id,
+          predictedWinner: event.prediction.predictedWinner,
+          confidence: event.prediction.confidence,
+          probabilities: event.prediction.probabilities,
+          generatedAt: event.prediction.generatedAt.toISOString(),
         },
       }),
     }));
@@ -334,56 +279,16 @@ class EventService {
       throw new AppError('Event not found', 404);
     }
 
-    // Fetch head-to-head data if team sport
-    let headToHead = null;
-    if (event.homeTeamId && event.awayTeamId) {
-      const h2h = await headToHeadRepository.findByTeams(
-        event.homeTeamId,
-        event.awayTeamId
-      );
-
-      if (h2h) {
-        headToHead = {
-          totalMatches: h2h.totalMatches,
-          team1Wins: h2h.team1Wins,
-          team2Wins: h2h.team2Wins,
-          draws: h2h.draws,
-          lastFiveResults: h2h.lastFiveResults,
-          averageGoalsTeam1: h2h.averageGoalsTeam1,
-          averageGoalsTeam2: h2h.averageGoalsTeam2,
-          lastUpdated: h2h.lastUpdated.toISOString(),
-        };
-      }
-    }
-
     // Transform to API response format
     const response = {
       id: event.id,
       externalId: event.externalId,
       eventName: event.eventName,
-      sport: {
-        id: event.sport.id,
-        name: event.sport.name,
-        displayName: event.sport.displayName,
-      },
-      ...(event.homeTeam && {
-        homeTeam: {
-          id: event.homeTeam.id,
-          name: event.homeTeam.name,
-          shortName: event.homeTeam.shortName,
-          logoUrl: event.homeTeam.logoUrl,
-        },
-      }),
-      ...(event.awayTeam && {
-        awayTeam: {
-          id: event.awayTeam.id,
-          name: event.awayTeam.name,
-          shortName: event.awayTeam.shortName,
-          logoUrl: event.awayTeam.logoUrl,
-        },
-      }),
-      ...(event.participant1Name && { participant1Name: event.participant1Name }),
-      ...(event.participant2Name && { participant2Name: event.participant2Name }),
+      sport: event.sport,
+      ...(event.homeTeam && { homeTeam: event.homeTeam }),
+      ...(event.awayTeam && { awayTeam: event.awayTeam }),
+      ...(event.participant1 && { participant1: event.participant1 }),
+      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
@@ -398,20 +303,23 @@ class EventService {
       homeTeamSnapshot: event.homeTeamSnapshot,
       awayTeamSnapshot: event.awayTeamSnapshot,
       snapshotGeneratedAt: event.snapshotGeneratedAt?.toISOString(),
-      ...(event.predictions.length > 0 && {
+      ...(event.homeTeamPlayers && { homeTeamPlayers: event.homeTeamPlayers }),
+      ...(event.awayTeamPlayers && { awayTeamPlayers: event.awayTeamPlayers }),
+      ...(event.injuries && { injuries: event.injuries }),
+      ...(event.headToHead && { headToHead: event.headToHead }),
+      ...(event.prediction && {
         prediction: {
-          id: event.predictions[0].id,
-          predictedWinner: event.predictions[0].predictedWinner,
-          confidence: event.predictions[0].confidence,
-          probabilities: event.predictions[0].probabilities,
-          keyFactors: event.predictions[0].keyFactors,
-          modelVersion: event.predictions[0].modelVersion,
-          generatedAt: event.predictions[0].generatedAt.toISOString(),
-          isAccurate: event.predictions[0].isAccurate,
-          accuracyNote: event.predictions[0].accuracyNote,
+          id: event.prediction.id,
+          predictedWinner: event.prediction.predictedWinner,
+          confidence: event.prediction.confidence,
+          probabilities: event.prediction.probabilities,
+          keyFactors: event.prediction.keyFactors,
+          modelVersion: event.prediction.modelVersion,
+          generatedAt: event.prediction.generatedAt.toISOString(),
+          isAccurate: event.prediction.isAccurate,
+          accuracyNote: event.prediction.accuracyNote,
         },
       }),
-      ...(headToHead && { headToHead }),
     };
 
     // Cache the response
