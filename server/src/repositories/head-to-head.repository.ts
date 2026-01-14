@@ -24,7 +24,7 @@ class HeadToHeadRepository {
   /**
    * Create a new head-to-head record
    */
-  async create(data: {
+  async create(_data: {
     team1Id: string;
     team2Id: string;
     totalMatches?: number;
@@ -43,8 +43,8 @@ class HeadToHeadRepository {
    * Update an existing head-to-head record
    */
   async update(
-    id: string,
-    data: {
+    _id: string,
+    _data: {
       totalMatches?: number;
       team1Wins?: number;
       team2Wins?: number;
@@ -61,7 +61,7 @@ class HeadToHeadRepository {
   /**
    * Upsert head-to-head record (create or update)
    */
-  async upsert(data: {
+  async upsert(_data: {
     team1Id: string;
     team2Id: string;
     totalMatches: number;

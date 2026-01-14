@@ -5,7 +5,7 @@ export class InjuryRepository {
   /**
    * Find active injuries by team
    */
-  async findActiveByTeam(teamId: string): Promise<Injury[]> {
+  async findActiveByTeam(_teamId: string): Promise<Injury[]> {
     // Simplified: no complex joins in in-memory store
     const injuries = await dataStore.injury.findMany({
       where: { status: 'active' },
@@ -17,7 +17,7 @@ export class InjuryRepository {
    * Find injury by ID
    */
   async findById(id: string): Promise<Injury | null> {
-    const injuries = await dataStore.injury.findMany();
+    const injuries = await dataStore.injury.findMany({});
     return injuries.find((i) => i.id === id) || null;
   }
 
@@ -33,7 +33,7 @@ export class InjuryRepository {
   /**
    * Create new injury
    */
-  async create(data: Partial<Injury>): Promise<Injury> {
+  async create(_data: Partial<Injury>): Promise<Injury> {
     // Not implemented in simple in-memory store
     throw new Error('Create operation not supported in simplified data store');
   }
@@ -41,7 +41,7 @@ export class InjuryRepository {
   /**
    * Update injury
    */
-  async update(id: string, data: Partial<Injury>): Promise<Injury> {
+  async update(_id: string, _data: Partial<Injury>): Promise<Injury> {
     // Not implemented in simple in-memory store
     throw new Error('Update operation not supported in simplified data store');
   }

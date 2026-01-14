@@ -99,7 +99,7 @@ class EventRepository {
       },
       take: filters.limit,
       skip: filters.offset,
-    });
+    }) as unknown as Promise<EventWithRelations[]>;
   }
 
   /**
@@ -171,7 +171,7 @@ class EventRepository {
       },
       take: filters.limit,
       skip: filters.offset,
-    });
+    }) as unknown as Promise<EventWithRelations[]>;
   }
 
   /**
@@ -275,7 +275,7 @@ class EventRepository {
           take: 1,
         },
       },
-    });
+    }) as unknown as Promise<EventWithRelations | null>;
   }
 
   /**
@@ -376,7 +376,7 @@ class EventRepository {
       },
       take: filters.limit,
       skip: filters.offset,
-    });
+    }) as unknown as Promise<EventWithRelations[]>;
   }
 
   /**
@@ -501,14 +501,12 @@ class EventRepository {
           take: 1,
         },
       },
-      orderBy: [
-        {
-          date: 'asc',
-        },
-      ],
+      orderBy: {
+        date: 'asc',
+      },
       take: filters.limit,
       skip: filters.offset,
-    });
+    }) as unknown as Promise<EventWithRelations[]>;
   }
 
   /**

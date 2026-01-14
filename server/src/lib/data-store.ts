@@ -437,15 +437,15 @@ class DataStore {
 
   // Player operations
   player = {
-    findMany: async (options: { where?: { teamId?: string; sportId?: string }; orderBy?: { displayName?: 'asc' } }) => {
+    findMany: async (options?: { where?: { teamId?: string; sportId?: string }; orderBy?: { displayName?: 'asc' } }) => {
       let result = Array.from(players.values());
-      if (options.where?.teamId) {
+      if (options?.where?.teamId) {
         result = result.filter((p) => p.teamId === options.where!.teamId);
       }
-      if (options.where?.sportId) {
+      if (options?.where?.sportId) {
         result = result.filter((p) => p.sportId === options.where!.sportId);
       }
-      if (options.orderBy?.displayName === 'asc') {
+      if (options?.orderBy?.displayName === 'asc') {
         result.sort((a, b) => a.displayName.localeCompare(b.displayName));
       }
       return result;
@@ -454,12 +454,12 @@ class DataStore {
 
   // Injury operations
   injury = {
-    findMany: async (options: { where?: { playerId?: string; status?: string } }) => {
+    findMany: async (options?: { where?: { playerId?: string; status?: string } }) => {
       let result = Array.from(injuries.values());
-      if (options.where?.playerId) {
+      if (options?.where?.playerId) {
         result = result.filter((i) => i.playerId === options.where!.playerId);
       }
-      if (options.where?.status) {
+      if (options?.where?.status) {
         result = result.filter((i) => i.status === options.where!.status);
       }
       return result;
