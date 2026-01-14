@@ -78,6 +78,8 @@ class PredictionRepository {
 
   /**
    * Update prediction accuracy after event completion
+   * Note: Uses eventId instead of prediction id to align with one-to-one relationship
+   * Breaking change from previous implementation
    */
   async updateAccuracy(
     eventId: string,

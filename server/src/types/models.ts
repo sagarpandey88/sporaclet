@@ -75,7 +75,7 @@ export interface PlayerData {
   displayName: string;
   position: string;
   jerseyNumber?: number;
-  birthDate?: string;
+  birthDate?: string; // ISO 8601 date string (JSONB stores as string)
   nationality?: string;
   height?: number;
   weight?: number;
@@ -90,8 +90,8 @@ export interface InjuryData {
   playerName: string;
   injuryType: string;
   severity: InjurySeverity;
-  occurredDate: string;
-  expectedReturnDate?: string;
+  occurredDate: string; // ISO 8601 date string (JSONB stores as string)
+  expectedReturnDate?: string; // ISO 8601 date string (JSONB stores as string)
   status: InjuryStatus;
   notes?: string;
 }
@@ -104,7 +104,7 @@ export interface HeadToHeadData {
   lastFiveResults: unknown;
   averageGoalsTeam1: number;
   averageGoalsTeam2: number;
-  lastUpdated: string;
+  lastUpdated: string; // ISO 8601 date string (JSONB stores as string)
 }
 
 export interface Event {
