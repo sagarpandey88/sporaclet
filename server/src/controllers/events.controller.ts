@@ -22,7 +22,19 @@ export const listEvents = asyncHandler(
     // Set cache headers
     res.setHeader('Cache-Control', 'public, max-age=3600');
 
-    res.status(200).json(result);
+    // Extract pagination safely
+    const pagination = result.pagination as { page: number; perPage: number; total: number; totalPages: number };
+
+    // Transform response to match API contract
+    res.status(200).json({
+      events: result.data,
+      pagination: {
+        page: pagination.page,
+        per_page: pagination.perPage,
+        total: pagination.total,
+        total_pages: pagination.totalPages,
+      },
+    });
   }
 );
 
@@ -46,7 +58,19 @@ export const listPastEvents = asyncHandler(
     // Set cache headers (1 hour)
     res.setHeader('Cache-Control', 'public, max-age=3600');
 
-    res.status(200).json(result);
+    // Extract pagination safely
+    const pagination = result.pagination as { page: number; perPage: number; total: number; totalPages: number };
+
+    // Transform response to match API contract
+    res.status(200).json({
+      events: result.data,
+      pagination: {
+        page: pagination.page,
+        per_page: pagination.perPage,
+        total: pagination.total,
+        total_pages: pagination.totalPages,
+      },
+    });
   }
 );
 
@@ -69,7 +93,19 @@ export const searchEvents = asyncHandler(
       perPage: per_page ? parseInt(per_page as string) : undefined,
     });
 
-    res.status(200).json(result);
+    // Extract pagination safely
+    const pagination = result.pagination as { page: number; perPage: number; total: number; totalPages: number };
+
+    // Transform response to match API contract
+    res.status(200).json({
+      events: result.data,
+      pagination: {
+        page: pagination.page,
+        per_page: pagination.perPage,
+        total: pagination.total,
+        total_pages: pagination.totalPages,
+      },
+    });
   }
 );
 
