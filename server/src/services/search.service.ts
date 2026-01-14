@@ -70,29 +70,11 @@ class SearchService {
       id: event.id,
       externalId: event.externalId,
       eventName: event.eventName,
-      sport: {
-        id: event.sport.id,
-        name: event.sport.name,
-        displayName: event.sport.displayName,
-      },
-      ...(event.homeTeam && {
-        homeTeam: {
-          id: event.homeTeam.id,
-          name: event.homeTeam.name,
-          shortName: event.homeTeam.shortName,
-          logoUrl: event.homeTeam.logoUrl,
-        },
-      }),
-      ...(event.awayTeam && {
-        awayTeam: {
-          id: event.awayTeam.id,
-          name: event.awayTeam.name,
-          shortName: event.awayTeam.shortName,
-          logoUrl: event.awayTeam.logoUrl,
-        },
-      }),
-      ...(event.participant1Name && { participant1Name: event.participant1Name }),
-      ...(event.participant2Name && { participant2Name: event.participant2Name }),
+      sport: event.sport,
+      ...(event.homeTeam && { homeTeam: event.homeTeam }),
+      ...(event.awayTeam && { awayTeam: event.awayTeam }),
+      ...(event.participant1 && { participant1: event.participant1 }),
+      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
@@ -100,15 +82,15 @@ class SearchService {
       homeScore: event.homeScore,
       awayScore: event.awayScore,
       winner: event.winner,
-      ...(event.predictions.length > 0 && {
+      ...(event.prediction && {
         prediction: {
-          id: event.predictions[0].id,
-          predictedWinner: event.predictions[0].predictedWinner,
-          confidence: event.predictions[0].confidence,
-          probabilities: event.predictions[0].probabilities,
-          isAccurate: event.predictions[0].isAccurate,
-          accuracyNote: event.predictions[0].accuracyNote,
-          generatedAt: event.predictions[0].generatedAt.toISOString(),
+          id: event.prediction.id,
+          predictedWinner: event.prediction.predictedWinner,
+          confidence: event.prediction.confidence,
+          probabilities: event.prediction.probabilities,
+          isAccurate: event.prediction.isAccurate,
+          accuracyNote: event.prediction.accuracyNote,
+          generatedAt: event.prediction.generatedAt.toISOString(),
         },
       }),
     }));
@@ -176,7 +158,9 @@ class SearchService {
       sport: event.sport.displayName,
       teams: event.homeTeam && event.awayTeam
         ? `${event.homeTeam.shortName} vs ${event.awayTeam.shortName}`
-        : `${event.participant1Name} vs ${event.participant2Name}`,
+        : event.participant1 && event.participant2
+        ? `${event.participant1.name} vs ${event.participant2.name}`
+        : '',
       status: event.status as EventStatus,
     }));
 

@@ -7,23 +7,27 @@ import { Prediction, WinnerType, ConfidenceLevel } from '../types/models';
  */
 class PredictionRepository {
   /**
-   * Find latest prediction for an event
+   * Find prediction for an event (one-to-one relationship)
    */
-  async findLatestByEvent(eventId: string): Promise<Prediction | null> {
+  async findByEvent(eventId: string): Promise<Prediction | null> {
     const result = await db.query<Prediction>(
-      `SELECT * FROM predictions 
-       WHERE "eventId" = $1 
-       ORDER BY "generatedAt" DESC 
-       LIMIT 1`,
+      `SELECT * FROM predictions WHERE "eventId" = $1`,
       [eventId]
     );
     return result.rows[0] || null;
   }
 
   /**
-   * Create a new prediction
+   * Alias for backward compatibility
    */
-  async create(data: {
+  async findLatestByEvent(eventId: string): Promise<Prediction | null> {
+    return this.findByEvent(eventId);
+  }
+
+  /**
+   * Create or update a prediction (upsert - enforces one per event)
+   */
+  async upsert(data: {
     eventId: string;
     probabilities: Record<string, number>;
     predictedWinner: WinnerType;
@@ -36,6 +40,15 @@ class PredictionRepository {
         "eventId", probabilities, "predictedWinner", confidence, 
         "keyFactors", "modelVersion"
       ) VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT ("eventId") 
+      DO UPDATE SET
+        probabilities = EXCLUDED.probabilities,
+        "predictedWinner" = EXCLUDED."predictedWinner",
+        confidence = EXCLUDED.confidence,
+        "keyFactors" = EXCLUDED."keyFactors",
+        "modelVersion" = EXCLUDED."modelVersion",
+        "generatedAt" = NOW(),
+        "updatedAt" = NOW()
       RETURNING *`,
       [
         data.eventId,
@@ -50,19 +63,35 @@ class PredictionRepository {
   }
 
   /**
+   * Create a new prediction (for backward compatibility - uses upsert)
+   */
+  async create(data: {
+    eventId: string;
+    probabilities: Record<string, number>;
+    predictedWinner: WinnerType;
+    confidence: ConfidenceLevel;
+    keyFactors: string[];
+    modelVersion: string;
+  }): Promise<Prediction> {
+    return this.upsert(data);
+  }
+
+  /**
    * Update prediction accuracy after event completion
+   * Note: Uses eventId instead of prediction id to align with one-to-one relationship
+   * Breaking change from previous implementation
    */
   async updateAccuracy(
-    id: string,
+    eventId: string,
     isAccurate: boolean,
     accuracyNote?: string
   ): Promise<Prediction> {
     const result = await db.query<Prediction>(
       `UPDATE predictions 
        SET "isAccurate" = $1, "accuracyNote" = $2, "updatedAt" = NOW()
-       WHERE id = $3
+       WHERE "eventId" = $3
        RETURNING *`,
-      [isAccurate, accuracyNote || null, id]
+      [isAccurate, accuracyNote || null, eventId]
     );
     return result.rows[0];
   }
