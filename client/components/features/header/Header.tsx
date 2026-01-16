@@ -1,9 +1,35 @@
-import React from 'react';
+"use client";
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Sun, Moon } from 'lucide-react';
 import { SearchAutocomplete } from '../search/SearchAutocomplete';
 
 export function Header() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sporaclet-theme');
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initial = stored ? stored === 'dark' : prefersDark;
+      setIsDark(initial);
+      document.documentElement.setAttribute('data-theme', initial ? 'dark' : 'light');
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  function toggleTheme() {
+    const next = !isDark;
+    setIsDark(next);
+    try {
+      localStorage.setItem('sporaclet-theme', next ? 'dark' : 'light');
+    } catch (e) {
+      // ignore
+    }
+    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,6 +59,16 @@ export function Header() {
             >
               Past Events
             </Link>
+            {/* Theme toggle (top-right) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-pressed={isDark}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="ml-2 inline-flex h-10 w-10 items-center justify-center rounded-md border p-2 hover:bg-accent/10 transition-colors"
+            >
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
           </nav>
         </div>
 

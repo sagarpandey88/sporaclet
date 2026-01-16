@@ -1,8 +1,8 @@
-1. Dark mode
-2. Fix Search
+1. Dark mode --done
+2. Fix Search -- Done
 3. Streamline for cricket and football
 4. schedule the copilot for Cricket and football
-5. Mobile view
+5. Mobile view --done
 6. Landing page more impressive
 7. Featured events
 8. Google analytics

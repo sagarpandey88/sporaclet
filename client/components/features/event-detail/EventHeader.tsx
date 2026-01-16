@@ -15,8 +15,7 @@ interface EventHeaderProps {
     name: string;
     shortName: string;
     logoUrl?: string | null;
-  };
-  className?: string;
+  };  
   date: string;
   venue?: string | null;
   league?: string | null;
@@ -29,9 +28,7 @@ export function EventHeader({
   eventName,
   sport,
   homeTeam,
-  awayTeam,
-  participant1Name,
-  participant2Name,
+  awayTeam,  
   date,
   venue,
   league,
@@ -85,34 +82,33 @@ export function EventHeader({
 
       {/* Teams or Participants */}
       {homeTeam && awayTeam ? (
-        <div className="flex items-center justify-center sm:justify-between gap-8 flex-wrap">
+        <div className="flex flex-col items-center md:flex-row md:justify-between gap-6">
           {/* Home team */}
-          <div className="flex flex-col items-center gap-4 flex-1 min-w-[200px]">
+          <div className="flex flex-col items-center gap-4 w-full md:flex-1 md:min-w-[200px]">
             <TeamAvatar
               logoUrl={homeTeam?.logoUrl}
               name={homeTeam?.name}
               shortName={homeTeam?.shortName}
-              className="h-24 w-24 sm:h-32 sm:w-32 rounded-md"
+              className="h-20 w-20 sm:h-24 sm:w-24 md:h-32 md:w-32 rounded-md"
             />
             <div className="text-center">
-              <h2 className="text-2xl font-bold">{homeTeam.shortName}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold">{homeTeam.shortName}</h2>
               <p className="text-sm text-muted-foreground">{homeTeam.name}</p>
             </div>
           </div>
-
           {/* VS */}
-          <div className="text-3xl font-bold text-muted-foreground">VS</div>
+          <div className="text-2xl md:text-3xl font-bold text-muted-foreground my-2 md:my-0">VS</div>
 
           {/* Away team */}
-          <div className="flex flex-col items-center gap-4 flex-1 min-w-[200px]">
+          <div className="flex flex-col items-center gap-4 w-full md:flex-1 md:min-w-[200px]">
             <TeamAvatar
               logoUrl={awayTeam?.logoUrl}
               name={awayTeam?.name}
               shortName={awayTeam?.shortName}
-              className="h-24 w-24 sm:h-32 sm:w-32 rounded-md"
+              className="h-20 w-20 sm:h-24 sm:w-24 md:h-32 md:w-32 rounded-md"
             />
             <div className="text-center">
-              <h2 className="text-2xl font-bold">{awayTeam.shortName}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold">{awayTeam.shortName}</h2>
               <p className="text-sm text-muted-foreground">{awayTeam.name}</p>
             </div>
           </div>
@@ -139,7 +135,7 @@ export function EventHeader({
           </div>
         )}
 
-        {/* attendance removed from model */}
+       
       </div>
     </div>
   );
