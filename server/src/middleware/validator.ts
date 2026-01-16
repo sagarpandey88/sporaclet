@@ -9,7 +9,7 @@ export const validateEventsQuery = (
   _res: Response,
   next: NextFunction
 ): void => {
-  const { sport, date_from, date_to, page, per_page } = req.query;
+  const { sport, date_from, date_to, page, per_page, q } = req.query;
 
   // Validate sport
   if (sport && typeof sport !== 'string') {
@@ -57,6 +57,11 @@ export const validateEventsQuery = (
         400
       );
     }
+  }
+
+  // Validate search query (optional)
+  if (q && typeof q !== 'string') {
+    throw new AppError('Invalid q parameter. Must be a string', 400);
   }
 
   next();

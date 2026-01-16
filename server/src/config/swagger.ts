@@ -91,8 +91,7 @@ const options: swaggerJsdoc.Options = {
             venue: { type: 'string', example: 'Old Trafford' },
             eventDate: { type: 'string', format: 'date-time' },
             status: { type: 'string', enum: ['upcoming', 'in_progress', 'completed', 'postponed', 'cancelled'] },
-            homeScore: { type: 'integer', nullable: true },
-            awayScore: { type: 'integer', nullable: true },
+            
             winner: { type: 'string', nullable: true },
             prediction: { $ref: '#/components/schemas/PredictionSummary' },
           },
@@ -145,7 +144,7 @@ const options: swaggerJsdoc.Options = {
         PaginatedEvents: {
           type: 'object',
           properties: {
-            events: {
+            data: {
               type: 'array',
               items: { $ref: '#/components/schemas/EventSummary' },
             },
@@ -158,7 +157,7 @@ const options: swaggerJsdoc.Options = {
         SearchResults: {
           type: 'object',
           properties: {
-            results: {
+            data: {
               type: 'array',
               items: { $ref: '#/components/schemas/EventSummary' },
             },

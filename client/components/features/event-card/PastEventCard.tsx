@@ -47,8 +47,8 @@ export function PastEventCard({ event, className = '' }: PastEventCardProps) {
       >
         <CardHeader className="pb-3">
           {/* Sport badge and accuracy indicator */}
-          <div className="flex items-center justify-between mb-2">
-            <Badge variant="secondary">{event.sport.displayName}</Badge>
+            <div className="flex items-center justify-between mb-2">
+            <Badge variant="secondary">{(event.sport || '').toString().charAt(0).toUpperCase() + (event.sport || '').toString().slice(1)}</Badge>
             <div className="flex items-center gap-2">
               {event.league && (
                 <span className="text-xs text-muted-foreground">{event.league}</span>
@@ -67,76 +67,16 @@ export function PastEventCard({ event, className = '' }: PastEventCardProps) {
 
         <CardContent className="space-y-4">
           {/* Teams or Participants with scores */}
-          {event.homeTeam && event.awayTeam ? (
-            <div className="space-y-2">
-              {/* Score display */}
-              <div className="flex items-center justify-between gap-4 p-3 bg-muted/50 rounded-lg">
-                {/* Home team */}
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <TeamAvatar
-                    logoUrl={event.homeTeam?.logoUrl}
-                    name={event.homeTeam?.name}
-                    shortName={event.homeTeam?.shortName}
-                    className="h-8 w-8 rounded-full"
-                  />
-                  <div className="flex flex-col">
-                    <span className={`font-medium truncate ${homeTeamWon ? 'text-green-600 font-bold' : ''}`}>
-                      {event.homeTeam.shortName}
-                    </span>
-                    {homeTeamWon && (
-                      <Trophy className="h-3 w-3 text-green-600" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Score */}
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className={`text-2xl font-bold ${homeTeamWon ? 'text-green-600' : ''}`}>
-                    {event.homeScore ?? '-'}
-                  </span>
-                  <span className="text-muted-foreground font-semibold">-</span>
-                  <span className={`text-2xl font-bold ${awayTeamWon ? 'text-green-600' : ''}`}>
-                    {event.awayScore ?? '-'}
-                  </span>
-                </div>
-
-                {/* Away team */}
-                <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-                  <div className="flex flex-col items-end">
-                    <span className={`font-medium truncate ${awayTeamWon ? 'text-green-600 font-bold' : ''}`}>
-                      {event.awayTeam.shortName}
-                    </span>
-                    {awayTeamWon && (
-                      <Trophy className="h-3 w-3 text-green-600" />
-                    )}
-                  </div>
-                  <TeamAvatar
-                    logoUrl={event.awayTeam?.logoUrl}
-                    name={event.awayTeam?.name}
-                    shortName={event.awayTeam?.shortName}
-                    className="h-8 w-8 rounded-full"
-                  />
-                </div>
-              </div>
-
-              {/* Draw indicator */}
+          <div className="space-y-2">
+            <div className="p-3 bg-muted/50 rounded-lg text-center">
+              <div className="font-medium">{event.eventName}</div>
               {isDraw && (
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="text-center text-sm text-muted-foreground mt-2">
                   Match ended in a draw
                 </div>
               )}
             </div>
-          ) : (
-            <div className="text-center space-y-2 p-3 bg-muted/50 rounded-lg">
-              <div className="font-medium">
-                {event.participant1Name}
-              </div>
-              <span className="text-muted-foreground">VS</span>
-              <div className="font-medium">
-                {event.participant2Name}
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* Date and venue */}
           <div className="space-y-2 text-sm text-muted-foreground">

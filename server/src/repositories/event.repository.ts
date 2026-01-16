@@ -50,7 +50,7 @@ class EventRepository {
     }
 
     if (filters.sport) {
-      conditions.push(`e.sport->>'name' = $${paramCount++}`);
+        conditions.push(`e.sport = $${paramCount++}`);
       params.push(filters.sport);
     }
 
@@ -65,8 +65,6 @@ class EventRepository {
         e."eventName" ILIKE $${paramCount} OR
         e."homeTeam"->>'name' ILIKE $${paramCount} OR
         e."awayTeam"->>'name' ILIKE $${paramCount} OR
-        e."participant1"->>'name' ILIKE $${paramCount} OR
-        e."participant2"->>'name' ILIKE $${paramCount} OR
         e.venue ILIKE $${paramCount} OR
         e.league ILIKE $${paramCount}
       )`);
@@ -127,24 +125,17 @@ class EventRepository {
         venue: row.venue,
         league: row.league,
         season: row.season,
-        round: row.round,
-        homeScore: row.homeScore,
-        awayScore: row.awayScore,
         winner: row.winner,
-        attendance: row.attendance,
         description: row.description,
         sport: row.sport,
         homeTeam: row.homeTeam,
         awayTeam: row.awayTeam,
-        participant1: row.participant1,
-        participant2: row.participant2,
         homeTeamPlayers: row.homeTeamPlayers,
         awayTeamPlayers: row.awayTeamPlayers,
         injuries: row.injuries,
         headToHead: row.headToHead,
         homeTeamSnapshot: row.homeTeamSnapshot,
         awayTeamSnapshot: row.awayTeamSnapshot,
-        snapshotGeneratedAt: row.snapshotGeneratedAt,
         isDeleted: row.isDeleted,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
@@ -179,6 +170,7 @@ class EventRepository {
     dateFrom?: Date;
     dateTo?: Date;
     league?: string;
+    query?: string;
     limit?: number;
     offset?: number;
   }): Promise<EventWithPrediction[]> {
@@ -189,7 +181,10 @@ class EventRepository {
       dateTo: filters.dateTo,
       sport: filters.sport,
       league: filters.league,
+      query: filters.query,
     });
+
+    console.log('Upcoming Events Where Clause:', where, 'Params:', params);
 
     return this.fetchEventsWithPrediction(
       where,
@@ -208,6 +203,7 @@ class EventRepository {
     dateFrom?: Date;
     dateTo?: Date;
     league?: string;
+    query?: string;
     limit?: number;
     offset?: number;
   }): Promise<EventWithPrediction[]> {
@@ -218,6 +214,7 @@ class EventRepository {
       dateTo: filters.dateTo || new Date(),
       sport: filters.sport,
       league: filters.league,
+      query: filters.query,
     });
 
     return this.fetchEventsWithPrediction(
@@ -237,6 +234,7 @@ class EventRepository {
     dateFrom?: Date;
     dateTo?: Date;
     league?: string;
+    query?: string;
   }): Promise<number> {
     const { where, params } = this.buildWhereClause({
       status: EventStatus.upcoming,
@@ -245,6 +243,7 @@ class EventRepository {
       dateTo: filters.dateTo,
       sport: filters.sport,
       league: filters.league,
+      query: filters.query,
     });
 
     const query = `
@@ -265,6 +264,7 @@ class EventRepository {
     dateFrom?: Date;
     dateTo?: Date;
     league?: string;
+    query?: string;
   }): Promise<number> {
     const { where, params } = this.buildWhereClause({
       status: EventStatus.completed,
@@ -273,6 +273,7 @@ class EventRepository {
       dateTo: filters.dateTo || new Date(),
       sport: filters.sport,
       league: filters.league,
+      query: filters.query,
     });
 
     const query = `

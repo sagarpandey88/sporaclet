@@ -421,41 +421,16 @@ components:
               type: string
               nullable: true
               example: "2024/2025"
-            
-            round:
-              type: string
-              nullable: true
-              example: "Matchday 21"
-            
             description:
               type: string
               nullable: true
               example: "Crucial Premier League encounter between fierce rivals"
-            
-            home_score:
-              type: integer
-              nullable: true
-              description: Final score for home team (null if not completed)
-              example: null
-            
-            away_score:
-              type: integer
-              nullable: true
-              description: Final score for away team (null if not completed)
-              example: null
-            
             winner:
               type: string
               nullable: true
               enum: [home, away, draw]
               description: Match winner (null if not completed)
               example: null
-            
-            attendance:
-              type: integer
-              nullable: true
-              description: Match attendance
-              example: 74500
             
             home_team_detail:
               $ref: '#/components/schemas/TeamDetail'
@@ -870,12 +845,8 @@ components:
         venue: "Old Trafford"
         league: "Premier League"
         season: "2024/2025"
-        round: "Matchday 21"
         description: "Crucial Premier League encounter between fierce rivals"
-        home_score: null
-        away_score: null
         winner: null
-        attendance: null
         home_team:
           id: "7a5e9b6f-1234-4321-abcd-ef1234567890"
           name: "Manchester United"

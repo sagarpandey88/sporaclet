@@ -30,11 +30,7 @@ export interface EventSummary {
   id: string;
   externalId: string;
   eventName: string;
-  sport: {
-    id: string;
-    name: string;
-    displayName: string;
-  };
+  sport: string;
   homeTeam?: {
     id: string;
     name: string;
@@ -54,8 +50,6 @@ export interface EventSummary {
   status: EventStatus;
   league?: string;
   // Fields for past/completed events
-  homeScore?: number;
-  awayScore?: number;
   winner?: WinnerType;
   prediction?: PredictionSummary;
 }
@@ -85,10 +79,7 @@ export interface EventDetail extends EventSummary {
   description?: string;
   season?: string;
   round?: string;
-  homeScore?: number;
-  awayScore?: number;
   winner?: WinnerType;
-  attendance?: number;
   prediction?: PredictionDetail;
   headToHead?: HeadToHead;
   homeTeamSnapshot?: TeamSnapshot;

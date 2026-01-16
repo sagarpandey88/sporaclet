@@ -49,8 +49,8 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   }
 
   const hasTeams = event.homeTeam && event.awayTeam;
-  const isFootball = event.sport?.name === 'football';
-  const isBasketball = event.sport?.name === 'basketball';
+  const isFootball = (event.sport || '').toString().toLowerCase() === 'football';
+  const isBasketball = (event.sport || '').toString().toLowerCase() === 'basketball';
   const isCompleted = event.status === EventStatus.completed;
 
   // Extract data from snapshots
@@ -71,8 +71,6 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           sport={event.sport}
           homeTeam={event.homeTeam}
           awayTeam={event.awayTeam}
-          participant1Name={event.participant1Name}
-          participant2Name={event.participant2Name}
         />
 
         {/* Prediction Section */}
@@ -219,7 +217,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
         {!hasTeams && (
           <div className="rounded-lg border bg-card p-8 text-center">
             <h2 className="text-2xl font-bold mb-2">
-              {event.participant1Name} vs {event.participant2Name}
+              {event.eventName}
             </h2>
             <p className="text-muted-foreground">
               Detailed statistics for individual sports coming soon.

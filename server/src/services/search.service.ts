@@ -73,15 +73,12 @@ class SearchService {
       sport: event.sport,
       ...(event.homeTeam && { homeTeam: event.homeTeam }),
       ...(event.awayTeam && { awayTeam: event.awayTeam }),
-      ...(event.participant1 && { participant1: event.participant1 }),
-      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
       league: event.league,
-      homeScore: event.homeScore,
-      awayScore: event.awayScore,
       winner: event.winner,
+      
       ...(event.prediction && {
         prediction: {
           id: event.prediction.id,
@@ -155,12 +152,10 @@ class SearchService {
       id: event.id,
       eventName: event.eventName,
       date: event.date.toISOString(),
-      sport: event.sport.displayName,
+      sport: event.sport,
       teams: event.homeTeam && event.awayTeam
         ? `${event.homeTeam.shortName} vs ${event.awayTeam.shortName}`
-        : event.participant1 && event.participant2
-        ? `${event.participant1.name} vs ${event.participant2.name}`
-        : '',
+        : event.eventName,
       status: event.status as EventStatus,
     }));
 

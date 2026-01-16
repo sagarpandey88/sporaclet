@@ -30,21 +30,15 @@ CREATE TABLE "events" (
     "venue" VARCHAR(255),
     "league" VARCHAR(255),
     "season" VARCHAR(50),
-    "round" VARCHAR(50),
-    "homeScore" INT,
-    "awayScore" INT,
     "winner" "WinnerType",
-    "attendance" INT,
     "description" TEXT,
     
     -- Denormalized sport data
-    "sport" JSONB NOT NULL,
+    "sport" VARCHAR(255) NOT NULL,
     
     -- Denormalized team/participant data
     "homeTeam" JSONB,
     "awayTeam" JSONB,
-    "participant1" JSONB,
-    "participant2" JSONB,
     
     -- Denormalized player data (for both teams if applicable)
     "homeTeamPlayers" JSONB,
@@ -59,7 +53,6 @@ CREATE TABLE "events" (
     -- Team snapshots (kept for historical accuracy)
     "homeTeamSnapshot" JSONB,
     "awayTeamSnapshot" JSONB,
-    "snapshotGeneratedAt" TIMESTAMP,
     
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -89,7 +82,7 @@ CREATE INDEX "events_date_status_idx" ON "events"("date", "status");
 CREATE INDEX "events_status_date_idx" ON "events"("status", "date");
 CREATE INDEX "events_eventName_idx" ON "events"("eventName");
 CREATE INDEX "events_league_idx" ON "events"("league");
-CREATE INDEX "events_sport_idx" ON "events" USING GIN ("sport");
+CREATE INDEX "events_sport_idx" ON "events" ("sport");
 
 -- Indexes for predictions
 CREATE INDEX "predictions_eventId_idx" ON "predictions"("eventId");

@@ -43,6 +43,7 @@ function UpcomingEventsContent() {
           sport: sport === 'all' ? undefined : sport,
           page,
           perPage: 20,
+          query: search === '' ? undefined : search,
         });
 
         setEvents(result.data);

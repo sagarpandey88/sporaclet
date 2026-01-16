@@ -32,7 +32,7 @@ export function EventCard({ event, className = '' }: EventCardProps) {
         <CardHeader className="pb-3">
           {/* Sport badge */}
           <div className="flex items-center justify-between mb-2">
-            <Badge variant="secondary">{event.sport.displayName}</Badge>
+            <Badge variant="secondary">{(event.sport || '').toString().charAt(0).toUpperCase() + (event.sport || '').toString().slice(1)}</Badge>
             {event.league && (
               <span className="text-xs text-muted-foreground">{event.league}</span>
             )}
@@ -81,9 +81,7 @@ export function EventCard({ event, className = '' }: EventCardProps) {
             </div>
           ) : (
             <div className="text-center space-y-2">
-              <div className="font-medium">{event.participant1Name}</div>
-              <span className="text-muted-foreground">VS</span>
-              <div className="font-medium">{event.participant2Name}</div>
+              <div className="font-medium">{event.eventName}</div>
             </div>
           )}
 

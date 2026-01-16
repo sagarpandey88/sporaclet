@@ -18,6 +18,17 @@ const router = Router();
  *           type: string
  *         description: Filter by sport (e.g., Soccer, Basketball)
  *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *         description: Search query (matches event name, teams, venue, league)
+ *       - in: query
+ *         name: sport
+ *         schema:
+ *           type: string
+ *         description: Filter by sport (e.g., Soccer, Basketball)
+ *       - in: query
  *         name: league
  *         schema:
  *           type: string
@@ -35,8 +46,7 @@ const router = Router();
  *           default: 20
  *           maximum: 100
  *         description: Number of items per page
- *     responses:
- *       200:
+ *
  *         description: Successful response
  *         content:
  *           application/json:

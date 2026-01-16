@@ -5,10 +5,7 @@ import TeamAvatar from '@/components/ui/TeamAvatar';
 
 interface EventHeaderProps {
   eventName: string;
-  sport: {
-    name: string;
-    displayName: string;
-  };
+  sport: string;
   homeTeam?: {
     name: string;
     shortName: string;
@@ -19,8 +16,7 @@ interface EventHeaderProps {
     shortName: string;
     logoUrl?: string | null;
   };
-  participant1Name?: string;
-  participant2Name?: string;
+  className?: string;
   date: string;
   venue?: string | null;
   league?: string | null;
@@ -63,12 +59,14 @@ export function EventHeader({
     cancelled: 'bg-gray-100 text-gray-800',
   };
 
+  const sportDisplay = typeof sport === 'string' ? (sport.charAt(0).toUpperCase() + sport.slice(1)) : '';
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Sport and Status badges */}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge variant="secondary" className="text-sm">
-          {sport.displayName}
+          {sportDisplay}
         </Badge>
         {league && (
           <Badge variant="outline" className="text-sm">
@@ -121,9 +119,7 @@ export function EventHeader({
         </div>
       ) : (
         <div className="text-center space-y-4">
-          <div className="text-2xl font-bold">{participant1Name}</div>
-          <div className="text-3xl font-bold text-muted-foreground">VS</div>
-          <div className="text-2xl font-bold">{participant2Name}</div>
+          <div className="text-2xl font-bold">{eventName}</div>
         </div>
       )}
 
@@ -143,12 +139,7 @@ export function EventHeader({
           </div>
         )}
 
-        {attendance && (
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 flex-shrink-0" />
-            <span>{attendance.toLocaleString()} attendees</span>
-          </div>
-        )}
+        {/* attendance removed from model */}
       </div>
     </div>
   );

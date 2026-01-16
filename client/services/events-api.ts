@@ -106,8 +106,18 @@ export const eventsApi = {
     league?: string;
     page?: number;
     perPage?: number;
+    query?: string;
   }): Promise<PaginatedResponse<EventSummary>> {
-    const queryString = buildQueryString(params || {});
+    const queryString = buildQueryString({
+      q: params?.query,
+      sport: params?.sport,
+      dateFrom: params?.dateFrom,
+      dateTo: params?.dateTo,
+      league: params?.league,
+      page: params?.page,
+      perPage: params?.perPage,
+    });
+
     const url = `${API_BASE_URL}/events${queryString}`;
     return fetchWithErrorHandling<PaginatedResponse<EventSummary>>(url);
   },

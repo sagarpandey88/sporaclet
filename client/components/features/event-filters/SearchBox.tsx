@@ -19,14 +19,10 @@ export function SearchBox({
 }: SearchBoxProps) {
   const [localValue, setLocalValue] = useState(value);
 
-  // Debounce the onChange callback
+  // Only invoke onChange when user explicitly submits (Enter key)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onChange(localValue);
-    }, debounceMs);
-
-    return () => clearTimeout(timer);
-  }, [localValue, onChange, debounceMs]);
+    setLocalValue(value);
+  }, [value]);
 
   // Sync with external value changes
   useEffect(() => {
@@ -41,6 +37,11 @@ export function SearchBox({
         placeholder={placeholder}
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onChange(localValue);
+          }
+        }}
         className="pl-10 min-h-[44px]"
         aria-label="Search events"
       />

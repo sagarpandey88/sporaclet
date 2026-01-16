@@ -3,7 +3,7 @@
 
 -- Insert events for Jan 15, 2026
 INSERT INTO public.events (
-    "externalId", "eventName", date, status, venue, league, season, round, sport, "homeTeam", "awayTeam", description
+    "externalId", "eventName", date, status, venue, league, season, sport, "homeTeam", "awayTeam", description
 ) VALUES
 (
     'evt-20260115-001',
@@ -13,8 +13,7 @@ INSERT INTO public.events (
     'Old Trafford',
     'Premier League',
     '2025-2026',
-    'Round 20',
-    '{"name": "Soccer", "category": "Football"}',
+    'football',
     '{"name": "Manchester United", "id": "mu"}',
     '{"name": "Liverpool", "id": "liv"}',
     'A highly anticipated match in the Premier League.'
@@ -27,8 +26,7 @@ INSERT INTO public.events (
     'Crypto.com Arena',
     'NBA',
     '2025-2026',
-    'Regular Season',
-    '{"name": "Basketball", "category": "NBA"}',
+    'basketball',
     '{"name": "Los Angeles Lakers", "id": "lal"}',
     '{"name": "Golden State Warriors", "id": "gsw"}',
     'NBA showdown between two historic rivals.'
@@ -59,7 +57,7 @@ INSERT INTO public.predictions (
 
 -- Insert events for Jan 16, 2026
 INSERT INTO public.events (
-    "externalId", "eventName", "date", "status", "venue", "league", "season", "round", "sport", "homeTeam", "awayTeam", "description"
+    "externalId", "eventName", "date", "status", "venue", "league", "season", "sport", "homeTeam", "awayTeam", "description"
 ) VALUES
 (
     'evt-20260116-001',
@@ -69,8 +67,7 @@ INSERT INTO public.events (
     'Santiago Bernabéu',
     'La Liga',
     '2025-2026',
-    'Round 18',
-    '{"name": "Soccer", "category": "Football"}',
+    'football',
     '{"name": "Real Madrid", "id": "rm"}',
     '{"name": "Barcelona", "id": "bar"}',
     'El Clásico: The biggest rivalry in Spanish football.'
@@ -83,8 +80,7 @@ INSERT INTO public.events (
     'Gillette Stadium',
     'NFL',
     '2025',
-    'Week 18',
-    '{"name": "American Football", "category": "NFL"}',
+    'american_football',
     '{"name": "New England Patriots", "id": "ne"}',
     '{"name": "Buffalo Bills", "id": "buf"}',
     'AFC East rivalry game.'
@@ -115,7 +111,7 @@ INSERT INTO public.predictions (
 
 -- Insert events for Jan 17, 2026
 INSERT INTO public.events (
-    "externalId", "eventName", "date", "status", "venue", "league", "season", "round", "sport", "homeTeam", "awayTeam", "description"
+    "externalId", "eventName", "date", "status", "venue", "league", "season", "sport", "homeTeam", "awayTeam", "description"
 ) VALUES
 (
     'evt-20260117-001',
@@ -125,8 +121,7 @@ INSERT INTO public.events (
     'Scotiabank Arena',
     'NHL',
     '2025-2026',
-    'Regular Season',
-    '{"name": "Ice Hockey", "category": "NHL"}',
+    'ice_hockey',
     '{"name": "Toronto Maple Leafs", "id": "tor"}',
     '{"name": "Montreal Canadiens", "id": "mtl"}',
     'Classic NHL rivalry in Canada.'
@@ -148,7 +143,7 @@ INSERT INTO public.predictions (
 
 -- Insert events for Jan 18, 2026
 INSERT INTO public.events (
-    "externalId", "eventName", "date", "status", "venue", "league", "season", "round", "sport", "homeTeam", "awayTeam", "description"
+    "externalId", "eventName", "date", "status", "venue", "league", "season", "sport", "homeTeam", "awayTeam", "description"
 ) VALUES
 (
     'evt-20260118-001',
@@ -158,8 +153,7 @@ INSERT INTO public.events (
     'Melbourne Cricket Ground',
     'Test Cricket',
     '2025-2026',
-    '2nd Test',
-    '{"name": "Cricket", "category": "Test"}',
+    'cricket',
     '{"name": "Australia", "id": "aus"}',
     '{"name": "India", "id": "ind"}',
     'Second Test match in the series.'
@@ -181,7 +175,7 @@ INSERT INTO public.predictions (
 
 -- Insert events for Jan 19, 2026
 INSERT INTO public.events (
-    "externalId", "eventName", "date", "status", "venue", "league", "season", "round", "sport", "homeTeam", "awayTeam", "description"
+    "externalId", "eventName", "date", "status", "venue", "league", "season", "sport", "homeTeam", "awayTeam", "description"
 ) VALUES
 (
     'evt-20260119-001',
@@ -191,8 +185,7 @@ INSERT INTO public.events (
     'Arthur Ashe Stadium',
     'WTA',
     '2026',
-    'Quarterfinals',
-    '{"name": "Tennis", "category": "Singles"}',
+    'tennis',
     '{"name": "Serena Williams", "id": "sw"}',
     '{"name": "Naomi Osaka", "id": "no"}',
     'Tennis quarterfinal match.'

@@ -16,6 +16,7 @@ class EventService {
    * List upcoming events with pagination and filters
    */
   async listUpcoming(params: {
+    query?: string;
     sport?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -31,14 +32,14 @@ class EventService {
     const cacheKey = `${this.CACHE_PREFIX}list:${JSON.stringify(params)}`;
 
     // Try to get from cache
-    const cached = await cacheService.get<{
-      data: unknown[];
-      pagination: unknown;
-    }>(cacheKey);
+    // const cached = await cacheService.get<{
+    //   data: unknown[];
+    //   pagination: unknown;
+    // }>(cacheKey);
 
-    if (cached) {
-      return cached;
-    }
+    // if (cached) {
+    //   return cached;
+    // }
 
     // Parse date filters
     const dateFrom = params.dateFrom ? new Date(params.dateFrom) : new Date();
@@ -51,6 +52,7 @@ class EventService {
         dateFrom,
         dateTo,
         league: params.league,
+        query: params.query,
         limit: perPage,
         offset,
       }),
@@ -59,6 +61,7 @@ class EventService {
         dateFrom,
         dateTo,
         league: params.league,
+        query: params.query,
       }),
     ]);
 
@@ -70,8 +73,6 @@ class EventService {
       sport: event.sport,
       ...(event.homeTeam && { homeTeam: event.homeTeam }),
       ...(event.awayTeam && { awayTeam: event.awayTeam }),
-      ...(event.participant1 && { participant1: event.participant1 }),
-      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
@@ -161,14 +162,10 @@ class EventService {
       sport: event.sport,
       ...(event.homeTeam && { homeTeam: event.homeTeam }),
       ...(event.awayTeam && { awayTeam: event.awayTeam }),
-      ...(event.participant1 && { participant1: event.participant1 }),
-      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
       league: event.league,
-      homeScore: event.homeScore,
-      awayScore: event.awayScore,
       winner: event.winner,
       ...(event.prediction && {
         prediction: {
@@ -230,8 +227,6 @@ class EventService {
       sport: event.sport,
       ...(event.homeTeam && { homeTeam: event.homeTeam }),
       ...(event.awayTeam && { awayTeam: event.awayTeam }),
-      ...(event.participant1 && { participant1: event.participant1 }),
-      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
@@ -287,22 +282,15 @@ class EventService {
       sport: event.sport,
       ...(event.homeTeam && { homeTeam: event.homeTeam }),
       ...(event.awayTeam && { awayTeam: event.awayTeam }),
-      ...(event.participant1 && { participant1: event.participant1 }),
-      ...(event.participant2 && { participant2: event.participant2 }),
       date: event.date.toISOString(),
       venue: event.venue,
       status: event.status as EventStatus,
       league: event.league,
       season: event.season,
-      round: event.round,
       description: event.description,
-      homeScore: event.homeScore,
-      awayScore: event.awayScore,
       winner: event.winner,
-      attendance: event.attendance,
       homeTeamSnapshot: event.homeTeamSnapshot,
       awayTeamSnapshot: event.awayTeamSnapshot,
-      snapshotGeneratedAt: event.snapshotGeneratedAt?.toISOString(),
       ...(event.homeTeamPlayers && { homeTeamPlayers: event.homeTeamPlayers }),
       ...(event.awayTeamPlayers && { awayTeamPlayers: event.awayTeamPlayers }),
       ...(event.injuries && { injuries: event.injuries }),

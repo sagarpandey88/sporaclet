@@ -116,19 +116,13 @@ export interface Event {
   venue?: string | null;
   league?: string | null;
   season?: string | null;
-  round?: string | null;
-  homeScore?: number | null;
-  awayScore?: number | null;
   winner?: WinnerType | null;
-  attendance?: number | null;
   description?: string | null;
   
   // Denormalized JSONB fields
-  sport: SportData;
+  sport: string;
   homeTeam?: TeamData | null;
   awayTeam?: TeamData | null;
-  participant1?: ParticipantData | null;
-  participant2?: ParticipantData | null;
   homeTeamPlayers?: PlayerData[] | null;
   awayTeamPlayers?: PlayerData[] | null;
   injuries?: InjuryData[] | null;
@@ -136,7 +130,6 @@ export interface Event {
   
   homeTeamSnapshot?: unknown | null;
   awayTeamSnapshot?: unknown | null;
-  snapshotGeneratedAt?: Date | null;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -172,9 +165,7 @@ export namespace Prisma {
       gte?: Date;
       lte?: Date;
     };
-    sport?: {
-      name?: string;
-    };
+    sport?: string;
     league?: {
       contains?: string;
       mode?: QueryMode;

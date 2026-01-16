@@ -87,15 +87,13 @@ CREATE TABLE "events" (
     "status" "EventStatus" NOT NULL DEFAULT 'upcoming',
     "league" VARCHAR(255),
     "season" VARCHAR(50),
-    "round" VARCHAR(50),
-    "homeScore" INT,
-    "awayScore" INT,
+    
     "winner" "WinnerType",
-    "attendance" INT,
+    
     "description" TEXT,
     "homeTeamSnapshot" JSONB,
     "awayTeamSnapshot" JSONB,
-    "snapshotGeneratedAt" TIMESTAMP,
+    
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
     "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()

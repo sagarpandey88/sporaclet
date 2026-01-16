@@ -8,7 +8,7 @@ import { asyncHandler, AppError } from '../middleware/error-handler';
  */
 export const listEvents = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { sport, date_from, date_to, league, page, per_page } = req.query;
+    const { sport, date_from, date_to, league, page, per_page, q } = req.query;
 
     const result = await eventService.listUpcoming({
       sport: sport as string | undefined,
@@ -17,6 +17,7 @@ export const listEvents = asyncHandler(
       league: league as string | undefined,
       page: page ? parseInt(page as string) : undefined,
       perPage: per_page ? parseInt(per_page as string) : undefined,
+      query: q as string | undefined,
     });
 
     // Set cache headers
@@ -25,9 +26,9 @@ export const listEvents = asyncHandler(
     // Extract pagination safely
     const pagination = result.pagination as { page: number; perPage: number; total: number; totalPages: number };
 
-    // Transform response to match API contract
+    // Transform response to match frontend contract (use `data`)
     res.status(200).json({
-      events: result.data,
+      data: result.data,
       pagination: {
         page: pagination.page,
         per_page: pagination.perPage,
@@ -61,9 +62,9 @@ export const listPastEvents = asyncHandler(
     // Extract pagination safely
     const pagination = result.pagination as { page: number; perPage: number; total: number; totalPages: number };
 
-    // Transform response to match API contract
+    // Transform response to match frontend contract (use `data`)
     res.status(200).json({
-      events: result.data,
+      data: result.data,
       pagination: {
         page: pagination.page,
         per_page: pagination.perPage,
@@ -96,9 +97,9 @@ export const searchEvents = asyncHandler(
     // Extract pagination safely
     const pagination = result.pagination as { page: number; perPage: number; total: number; totalPages: number };
 
-    // Transform response to match API contract
+    // Transform response to match frontend contract (use `data`)
     res.status(200).json({
-      events: result.data,
+      data: result.data,
       pagination: {
         page: pagination.page,
         per_page: pagination.perPage,
