@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Header } from '@/components/features/header/Header';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, Calendar, BarChart3 } from 'lucide-react';
+import Particles from '@/components/particles/Particles';
 
 export default function Home() {
   return (
@@ -10,8 +11,9 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero section */}
-        <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/5 to-background">
-          <div className="container mx-auto max-w-4xl text-center space-y-8">
+        <section className="relative py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/5 to-background">
+          <Particles forceMotion />
+          <div className="container mx-auto max-w-4xl text-center space-y-8 relative z-10">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
               <TrendingUp className="h-4 w-4" />
               <span>AI-Powered Sports Predictions</span>

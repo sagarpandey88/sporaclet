@@ -46,3 +46,13 @@ html[data-theme="light"] {
   --background: #ffffff !important;
   --foreground: #171717 !important;
 }
+
+/* Particle color variables (used by the particles component) */
+:root {
+  --particle-accent: #ff6b6b;
+  --particle-accent-2: #ffd166;
+  --particle-dot: #9be7ff;
+}
+
+/* Import particle-specific styles */
+@import "../components/particles/particles.css";

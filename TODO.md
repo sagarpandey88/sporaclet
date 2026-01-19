@@ -3,7 +3,7 @@
 3. Streamline for cricket and football
 4. schedule the copilot for Cricket and football
 5. Mobile view --done
-6. Landing page more impressive
+6. Landing page more impressive --Done
 7. Featured events
 8. Google analytics
 9. Better url instead of guid
